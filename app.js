@@ -113,11 +113,6 @@ function renderHero() {
     ul.appendChild(li);
   });
 }
-$('[data-demo-notify]').addEventListener('click', e => {
-  e.currentTarget.disabled = true;
-  e.currentTarget.textContent = 'Cliente avisado';
-  $('[data-demo-notify-out]').textContent = 'Enviado 09:17 · "Estamos renovando el certificado, en 20 min estará resuelto."';
-});
 
 // ---------- Prueba anti-SSRF ----------
 $('[data-ssrf-try]').addEventListener('submit', e => {
@@ -342,12 +337,17 @@ function initPaddle() {
   return (paddleReady = true);
 }
 let awaitingPayment = false;
-$('[data-checkout]').addEventListener('submit', e => {
+$('[data-checkout]').addEventListener('submit', async e => {
   e.preventDefault();
   const f = e.currentTarget;
   if (!f.elements.start.checked) { setMsg(f, 'start', 'Marca la casilla para empezar ya.'); return; }
   setMsg(f, 'start', '');
   if (!session) { location.hash = '#/login'; return; }
+  const { data: current } = await sb.from('subscriptions').select('status').maybeSingle();
+  if (current && ['active', 'trialing', 'past_due'].includes(current.status)) {
+    formMsg(f, 'Ya tienes un plan de pago. Para cambiarlo, cancélalo en tu panel (Cuenta y seguridad → Suscripción) y contrata el nuevo cuando termine el periodo pagado.');
+    return;
+  }
   if (!initPaddle()) { formMsg(f, 'El pago no está disponible ahora mismo. Recarga la página o inténtalo más tarde.'); return; }
   const priceId = CFG.paddle.prices[f.dataset.plan][f.dataset.cycle];
   formMsg(f, '');
@@ -504,25 +504,6 @@ $('[data-add-monitor]').addEventListener('submit', async e => {
   formMsg(f, 'Monitor guardado. La primera comprobación llega en menos de un minuto.', true);
 });
 
-async function hmacHex(secret, body) {
-  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
-  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(body));
-  return [...new Uint8Array(sig)].map(b => b.toString(16).padStart(2, '0')).join('');
-}
-$('[data-webhook]').addEventListener('submit', async e => {
-  e.preventDefault();
-  const f = e.currentTarget;
-  const r = SsrfGuard.checkUrl(f.elements.url.value);
-  const out = $('[data-webhook-out]', f);
-  if (!r.ok) { setMsg(f, 'url', r.error); out.hidden = true; return; }
-  if (r.url.protocol !== 'https:') { setMsg(f, 'url', 'Los webhooks deben usar https.'); out.hidden = true; return; }
-  setMsg(f, 'url', 'Vista previa de un envío firmado (aún no se guarda):', true);
-  const ts = Math.floor(Date.now() / 1000);
-  const body = JSON.stringify({ event: 'monitor.down', monitor: 'Web principal', at: ts });
-  const sig = await hmacHex('whsec_vista_previa', `${ts}.${body}`);
-  out.textContent = `POST ${r.url.href}\nLatido-Timestamp: ${ts}\nLatido-Signature: v1=${sig}\n\n${body}`;
-  out.hidden = false;
-});
 
 // ---------- 2FA (TOTP) ----------
 let enrollingFactor = null;
@@ -630,22 +611,6 @@ document.addEventListener('click', e => {
   if (b && actions[b.dataset.action]) actions[b.dataset.action]();
 });
 
-// ---------- Página de estado pública de ejemplo (sin URLs ni IPs) ----------
-function renderStatus() {
-  const ul = $('[data-status-list]');
-  ul.replaceChildren();
-  [['Web principal', 'up', '99,97 %'], ['Reserva de citas', 'warn', '99,62 %'], ['Formulario de contacto', 'up', '100 %']].forEach(([n, s, u]) => {
-    const li = document.createElement('li');
-    const row = document.createElement('div'); row.className = 'row';
-    const b = document.createElement('b'); b.textContent = n;
-    const badge = document.createElement('span');
-    badge.className = 'badge ' + (s === 'up' ? 'badge-up' : 'badge-warn');
-    badge.textContent = s === 'up' ? `Operativo · ${u}` : `Incidencia · ${u}`;
-    row.append(b, badge);
-    li.append(row, bars('estado-' + n, 90, s === 'warn', u === '100 %'));
-    ul.appendChild(li);
-  });
-}
 
 // ---------- Router ----------
 const PROTECTED = new Set(['/app']);
@@ -713,7 +678,6 @@ async function waitForPlan() {
 
 // ---------- Arranque ----------
 renderHero();
-renderStatus();
 sb.auth.onAuthStateChange((event, s) => {
   session = s;
   // Sin llamadas a Supabase dentro del callback (evita bloqueos de la librería)

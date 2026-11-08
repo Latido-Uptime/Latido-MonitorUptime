@@ -308,3 +308,6 @@ input[aria-invalid="true"] { border-color: var(--down); }
 .captcha-slot { min-height: 65px; margin-top: 12px; }
 .captcha-slot:empty { min-height: 0; margin: 0; }
 .bars i.e { background: var(--line); opacity: .6; }
+.roadmap { margin-top: 32px; padding: 20px 24px; border: 1px dashed var(--line); border-radius: 6px; }
+.roadmap h3 { margin-bottom: .4em; }
+.roadmap p { margin: 0; }

@@ -8,9 +8,9 @@
 <meta name="page-type" content="software">
 <meta name="site-kind" content="software">
 <title>Latido — Monitor de uptime para agencias web</title>
-<meta name="description" content="Latido vigila las webs de tus clientes cada 30 segundos, te avisa por WhatsApp, Telegram o email y les da a ellos una página de estado con tu marca.">
+<meta name="description" content="Latido comprueba las webs de tus clientes hasta cada 30 segundos y te avisa por email cuando caen y cuando vuelven, con el motivo explicado.">
 <meta property="og:title" content="Latido — Monitor de uptime para agencias web">
-<meta property="og:description" content="Uptime, SSL y dominios de todos tus clientes en un panel. Informes mensuales en PDF con tu marca.">
+<meta property="og:description" content="Uptime de las webs de todos tus clientes en un panel, con avisos por email al caer y al volver.">
 <meta property="og:image" content="og.png">
 <meta name="theme-color" content="#eef0f3">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230b0c0e'/%3E%3Cpath d='M4 17h6l3-8 5 15 3-7h7' fill='none' stroke='%2334d27b' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
@@ -40,7 +40,6 @@
       <a href="#/#funciones">Funciones</a>
       <a href="#/#seguridad">Seguridad</a>
       <a href="#/#precios">Precios</a>
-      <a href="#/estado">Página de estado</a>
       <span class="nav-sep" aria-hidden="true"></span>
       <a href="#/login" data-guest>Iniciar sesión</a>
       <a class="btn btn-primary btn-sm" href="#/registro" data-guest>Crear cuenta gratis</a>
@@ -51,7 +50,7 @@
 </header>
 
 <main id="main" tabindex="-1">
-<p class="notice wrap">Beta. Las cuentas, las comprobaciones de tus monitores y los avisos por email son reales. Los pagos están en modo de prueba: usa una tarjeta de prueba de Paddle, no se cobra nada. Los textos legales son un borrador.</p>
+<p class="notice wrap">Beta. Las cuentas, las comprobaciones y los avisos por email funcionan de verdad. Los pagos aún están en modo de prueba: usa una tarjeta de prueba de Paddle, no se cobra nada.</p>
 
 <!-- ================= LANDING ================= -->
 <div data-view="/">
@@ -60,11 +59,11 @@
   <div class="wrap hero-grid">
     <div class="hero-copy">
       <p class="eyebrow mono"><span class="dot dot-up" aria-hidden="true"></span> Para agencias y freelancers web</p>
-      <h1>El monitor de uptime que tus clientes también entienden.</h1>
-      <p class="lede">Latido comprueba cada web de tus clientes cada 30 segundos desde 3 regiones. Cuando algo cae, te avisa por WhatsApp o Telegram y le explica al cliente qué pasó, en su idioma, con tu logo.</p>
+      <h1>El monitor de uptime que te dice qué falló, no solo que falló.</h1>
+      <p class="lede">Latido comprueba las webs de tus clientes hasta cada 30 segundos. Cuando una cae, te avisa por email en menos de un minuto con el motivo en español: certificado SSL caducado, dominio que no responde o error del servidor. Y te avisa otra vez cuando vuelve.</p>
       <div class="hero-actions">
         <a class="btn btn-primary" href="#/registro">Crear cuenta gratis</a>
-        <a class="btn btn-ghost" href="#/estado">Ver una página de estado</a>
+        <a class="btn btn-ghost" href="#/#precios">Ver precios</a>
       </div>
       <p class="fineprint">Sin tarjeta. 5 monitores gratis para siempre.</p>
     </div>
@@ -89,10 +88,9 @@
               <span class="badge badge-down">Caída · 4 min</span>
               <b>clinicaortiz.example</b>
             </div>
-            <p class="diag"><span class="mono">Diagnóstico</span> El certificado SSL caducó hoy a las 09:12. El hosting responde; el problema es el certificado.</p>
+            <p class="diag"><span class="mono">Motivo</span> El certificado SSL ha caducado.</p>
             <div class="incident-actions">
-              <button class="btn btn-primary btn-sm" type="button" data-demo-notify>Avisar al cliente</button>
-              <span class="mono muted" data-demo-notify-out>WhatsApp a Marta Ortiz · plantilla "SSL caducado"</span>
+              <span class="mono muted">Aviso enviado por email a las 09:12 · te avisaremos cuando vuelva</span>
             </div>
           </div>
           <ul class="mon-list" data-hero-monitors></ul>
@@ -104,44 +102,48 @@
 
 <section class="band" id="funciones">
   <div class="wrap">
-    <h2>Seis cosas que otros monitores no hacen por una agencia</h2>
+    <h2>Lo que hace Latido por las webs de tus clientes</h2>
     <div class="features">
       <article class="card">
         <span class="ic" aria-hidden="true">01</span>
-        <div class="mini" aria-hidden="true"><span class="badge badge-down">Caída</span><span class="mono">DNS ✓ · Hosting ✓ · <b class="t-down">SSL ✗</b></span></div>
-        <h3>Diagnóstico en lenguaje claro</h3>
-        <p>No solo "caído": te dice si es el DNS, el certificado, el hosting, un error 500 o el dominio vencido. Y te propone el mensaje para el cliente.</p>
+        <div class="mini" aria-hidden="true"><span class="badge badge-down">Caída</span><span class="mono">El certificado SSL ha caducado</span></div>
+        <h3>El motivo, en español</h3>
+        <p>No solo "caído": te dice si caducó el certificado, si el dominio no existe, si el servidor rechaza la conexión o qué error devuelve.</p>
       </article>
       <article class="card">
         <span class="ic" aria-hidden="true">02</span>
-        <div class="mini" aria-hidden="true"><span class="client-logo sm">HB</span><span class="mono">estado.hotelbrisa.example</span><span class="badge badge-up">Operativo</span></div>
-        <h3>Página de estado con tu marca</h3>
-        <p>Una por cliente, con tu logo y tus colores. En el plan Agencia, en tu propio dominio y sin mencionar a Latido.</p>
+        <div class="mini" aria-hidden="true"><span class="bubble">🔴 Caída: Tienda online · 🟢 Recuperado tras 7 min</span></div>
+        <h3>Avisos al caer y al volver</h3>
+        <p>Un email cuando la web deja de responder y otro cuando vuelve, con cuánto tiempo estuvo caída. Nunca te repetimos el mismo aviso.</p>
       </article>
       <article class="card">
         <span class="ic" aria-hidden="true">03</span>
-        <div class="mini" aria-hidden="true"><span class="pdf mono">PDF</span><span class="mono">Octubre · Ferretería Lumen<br><b>99,96 %</b> · 1 incidencia</span></div>
-        <h3>Informe mensual en PDF</h3>
-        <p>El día 1 cada cliente recibe su uptime, incidencias y tiempos de respuesta. Justifica tu cuota de mantenimiento sin que escribas nada.</p>
+        <div class="mini" aria-hidden="true"><span class="mono">Falla · 5 s · vuelve a fallar</span><span class="badge badge-down">Aviso</span></div>
+        <h3>Sin falsas alarmas</h3>
+        <p>Antes de avisarte repetimos la comprobación unos segundos después. Un fallo puntual de red no te despierta a medianoche.</p>
       </article>
       <article class="card">
         <span class="ic" aria-hidden="true">04</span>
-        <div class="mini" aria-hidden="true"><span class="bubble">⚠ clinicaortiz.example caída desde 09:12 · SSL caducado</span></div>
-        <h3>Alertas por WhatsApp y Telegram</h3>
-        <p>Donde ya miras el móvil. Email siempre; SMS con número verificado y tope por hora para que nunca pagues de más.</p>
+        <div class="mini" aria-hidden="true"><span class="client-logo sm">CO</span><span class="mono">Clínica Ortiz · 3 monitores</span></div>
+        <h3>Ordenado por cliente</h3>
+        <p>Etiqueta cada monitor con el nombre del cliente y ten todas sus webs y servicios en un solo panel.</p>
       </article>
       <article class="card">
         <span class="ic" aria-hidden="true">05</span>
-        <div class="mini" aria-hidden="true"><span class="mono">SSL hotelbrisa.example</span><span class="badge badge-warn">6 días</span></div>
-        <h3>Vencimientos antes de que duelan</h3>
-        <p>Avisos 30, 7 y 1 día antes de que caduque el SSL o el dominio de un cliente. La caída más tonta es la que se puede prever.</p>
+        <div class="mini" aria-hidden="true"><span class="mono">Últimas 24 h</span><span class="maint-bar"><i></i></span><span class="mono">99,9 %</span></div>
+        <h3>Historial y uptime</h3>
+        <p>Cada comprobación queda registrada: estado, tiempo de respuesta y la barra de las últimas 24 horas con su porcentaje de uptime.</p>
       </article>
       <article class="card">
         <span class="ic" aria-hidden="true">06</span>
-        <div class="mini" aria-hidden="true"><span class="mono">Mar 03:00–03:30</span><span class="maint-bar"><i></i></span><span class="mono muted">en pausa</span></div>
-        <h3>Ventanas de mantenimiento</h3>
-        <p>Marca cuándo actualizas WordPress o migras de hosting. Latido no despierta a nadie ni cuenta ese rato contra el uptime del informe.</p>
+        <div class="mini" aria-hidden="true"><span class="mono">2FA · CAPTCHA · bcrypt</span><span class="badge badge-up">Activo</span></div>
+        <h3>Tu cuenta, protegida</h3>
+        <p>Verificación en dos pasos con tu app, contraseñas cifradas y comprobadas contra filtraciones, y exportar o borrar tus datos en un clic.</p>
       </article>
+    </div>
+    <div class="roadmap">
+      <h3>En camino</h3>
+      <p class="muted">Funciones en desarrollo. Todavía no están incluidas en ningún plan; las anunciaremos cuando estén listas: avisos por Telegram y WhatsApp, páginas de estado con tu marca para tus clientes, informe mensual en PDF, avisos antes de que caduque el SSL o el dominio y ventanas de mantenimiento.</p>
     </div>
   </div>
 </section>
@@ -153,10 +155,9 @@
       <p class="lede">Un servicio que visita URLs por encargo es un blanco fácil. Así cerramos cada puerta:</p>
       <ul class="checks">
         <li><b>Filtro anti-SSRF.</b> Antes de cada comprobación y tras cada redirección resolvemos el DNS y bloqueamos redes privadas, loopback y metadatos de la nube.</li>
-        <li><b>Solo http y https,</b> máximo 5 redirecciones, timeout de 10 s y 1 MB como mucho. Guardamos el código de estado y el tiempo, nunca el contenido.</li>
-        <li><b>Comprobadores aislados,</b> en máquinas sin acceso a la base de datos.</li>
+        <li><b>Solo http y https,</b> máximo 5 redirecciones y 10 s de espera. Guardamos el código de estado y el tiempo; nunca descargamos el contenido de la página.</li>
+        <li><b>Comprobador aislado:</b> corre en su propio servidor y en la base de datos solo puede pedir qué toca comprobar y guardar el resultado. No puede leer cuentas ni datos.</li>
         <li><b>Límites anti-abuso:</b> intervalo mínimo por plan, monitores por cuenta y por dominio entre todas las cuentas.</li>
-        <li><b>Webhooks firmados con HMAC-SHA256</b> y pasados por el mismo filtro.</li>
         <li><b>Login probado</b> con 2FA por app, contraseñas cifradas con bcrypt y comprobadas contra filtraciones conocidas.</li>
         <li><b>Pagos con Paddle:</b> nunca vemos tu tarjeta.</li>
       </ul>
@@ -191,9 +192,9 @@
         <ul>
           <li>5 monitores</li>
           <li>Comprobación cada 5 min</li>
-          <li>Alertas solo por email</li>
-          <li>1 página de estado</li>
-          <li>Historial de 30 días</li>
+          <li>Avisos por email al caer y al volver</li>
+          <li>Motivo de cada caída</li>
+          <li>Historial y uptime de 24 h</li>
         </ul>
         <a class="btn btn-ghost" href="#/registro">Empezar con el plan Gratis</a>
       </article>
@@ -204,10 +205,9 @@
         <ul>
           <li>30 monitores</li>
           <li>Comprobación cada 60 s</li>
-          <li>Email, Telegram y WhatsApp</li>
-          <li>10 páginas de estado con tu logo</li>
-          <li>Informe mensual PDF por cliente</li>
-          <li>Avisos de SSL y dominio</li>
+          <li>Avisos por email al caer y al volver</li>
+          <li>Motivo de cada caída</li>
+          <li>Historial y uptime de 24 h</li>
         </ul>
         <a class="btn btn-ghost" href="#/checkout?plan=freelancer" data-plan-link="freelancer">Elegir Freelancer</a>
       </article>
@@ -218,17 +218,15 @@
         <p class="muted" data-billed="29">Facturado cada mes. Impuestos según tu país.</p>
         <ul>
           <li>150 monitores</li>
-          <li>Comprobación cada 30 s desde 3 regiones</li>
-          <li>Todo lo de Freelancer</li>
-          <li>Marca blanca en tu dominio</li>
-          <li>50 SMS al mes con número verificado</li>
-          <li>Webhooks firmados y API</li>
-          <li>5 miembros de equipo con 2FA</li>
+          <li>Comprobación cada 30 s</li>
+          <li>Avisos por email al caer y al volver</li>
+          <li>Motivo de cada caída</li>
+          <li>Historial y uptime de 24 h</li>
         </ul>
         <a class="btn btn-primary" href="#/checkout?plan=agencia" data-plan-link="agencia">Elegir Agencia</a>
       </article>
     </div>
-    <p class="muted small measure">Cancela desde tu cuenta en un clic. Te avisamos 7 días antes de cada renovación anual. Pago y facturas con Paddle, que calcula el IVA de tu país. <a href="#/reembolsos">Reembolso en 14 días</a>.</p>
+    <p class="muted small measure">Todos los planes incluyen 2FA, CAPTCHA y exportar o borrar tus datos. Cancela desde tu panel en un clic. Pago y facturas con Paddle, que calcula el IVA de tu país. <a href="#/reembolsos">Reembolso en 14 días</a>.</p>
   </div>
 </section>
 
@@ -237,8 +235,8 @@
     <h2>Preguntas antes de empezar</h2>
     <details><summary>¿Puedo monitorizar webs que no son mías?</summary><p>Solo las de tus clientes o las que tengas permiso para vigilar. Los <a href="#/terminos">términos</a> prohíben usar Latido para saturar o sondear sitios ajenos, y los límites por dominio lo frenan.</p></details>
     <details><summary>¿Qué pasa si una alerta llega tarde?</summary><p>Antes de avisar repetimos la comprobación unos segundos después, para no darte falsas alarmas. Aun así ningún sistema es infalible: la responsabilidad está limitada como explican los términos.</p></details>
-    <details><summary>¿Ve mi cliente datos técnicos?</summary><p>No. La página de estado muestra nombres de servicio, uptime e incidencias. Nunca URLs internas, IPs ni errores, salvo que tú lo actives.</p></details>
-    <details><summary>¿Cómo cancelo?</summary><p>En Cuenta → Suscripción → Cancelar. Sin llamadas ni emails. Sigues con tu plan hasta el final del periodo pagado.</p></details>
+    <details><summary>¿Puedo cambiar de plan?</summary><p>Sí. Cancela el plan actual desde tu panel y, cuando termine el periodo pagado, contrata el nuevo. Si bajas a un plan con menos monitores, los que sobren quedan en pausa (no se borran) y se reactivan si vuelves a subir.</p></details>
+    <details><summary>¿Cómo cancelo?</summary><p>En tu panel: Cuenta y seguridad → Suscripción → Cancelar suscripción. Sin llamadas ni emails. Sigues con tu plan hasta el final del periodo pagado.</p></details>
     <details><summary>¿Dónde están mis datos y cómo los borro?</summary><p>En servidores de Supabase y Fly.io en Estados Unidos. Puedes exportarlos o borrar tu cuenta desde tu panel; al borrarla se eliminan al momento. Paddle conserva las facturas que la ley obliga a guardar.</p></details>
   </div></div>
 </section>
@@ -421,16 +419,7 @@
             <p class="hint" data-limits></p>
           </form>
 
-          <form class="panel form" data-webhook novalidate>
-            <h2 class="h3">Webhook de avisos</h2>
-            <p class="hint">Vista previa: los webhooks se activan en la fase de alertas.</p>
-            <label for="w-url">URL del webhook</label>
-            <input type="text" id="w-url" name="url" class="mono" placeholder="https://hooks.tuagencia.com/latido" spellcheck="false">
-            <p class="field-msg" data-msg="url"></p>
-            <button class="btn btn-ghost btn-block" type="submit">Guardar webhook</button>
-            <pre class="code mono" data-webhook-out hidden></pre>
-          </form>
-        </div>
+                  </div>
       </div>
 
       <div class="panel" id="cuenta">
@@ -472,28 +461,6 @@
   </section>
 </div>
 
-<!-- ================= PÁGINA DE ESTADO PÚBLICA ================= -->
-<div data-view="/estado" hidden>
-  <section class="status">
-    <div class="wrap narrow">
-      <div class="status-brand">
-        <span class="client-logo" aria-hidden="true">CO</span>
-        <div><h1 class="h4 status-name">Clínica Ortiz</h1><span class="muted small">Estado de los servicios</span></div>
-      </div>
-      <div class="status-banner is-degraded">
-        <b>Incidencia en la reserva de citas</b>
-        <span>Estamos renovando el certificado de seguridad. La web principal funciona con normalidad.</span>
-      </div>
-      <ul class="status-list" data-status-list></ul>
-      <h2 class="h3">Incidencias recientes</h2>
-      <ol class="timeline">
-        <li><time class="mono">Hoy 09:16</time><b>Reserva de citas no disponible</b><span>Detectado. Tu agencia ya está trabajando en ello.</span></li>
-        <li><time class="mono">12 oct · 03:40</time><b>Mantenimiento programado</b><span>Actualización de la web. 25 minutos. Sin incidencias.</span></li>
-      </ol>
-      <p class="muted small center">Página de estado gestionada por tu agencia · <a href="#/">Hecho con Latido</a></p>
-    </div>
-  </section>
-</div>
 
 <!-- ================= LEGAL ================= -->
 <div data-view="/terminos" hidden>
@@ -569,7 +536,6 @@
       <a href="#/cookies">Cookies</a>
       <a href="#/reembolsos">Reembolsos</a>
       <a href="#/aviso-legal">Aviso legal</a>
-      <a href="#/estado">Página de estado</a>
     </nav>
   </div>
 </footer>
