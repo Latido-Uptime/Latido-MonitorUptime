@@ -139,4 +139,68 @@ await as(C, `delete from public.monitors where id = ${mc}`);
 assert.strictEqual((await db.query('select count(*)::int as n from public.monitor_checks')).rows[0].n, 0);
 assert.strictEqual((await report(true, 200, 10, null)).rows.length, 0);
 
+// ---------- Fase 4: suscripciones con Paddle ----------
+const E = '66666666-6666-6666-6666-666666666666', F = '77777777-7777-7777-7777-777777777777';
+await db.query(`insert into auth.users (id, email) values ($1, 'e@x.com'), ($2, 'f@x.com')`, [E, F]);
+const AGENCIA_MES = 'pri_01m6xhy9v5yxy38bjhjb29w0ej', FREELANCER_MES = 'pri_01m6xhx0k2jwwrxxgqt4j78sta';
+const apply = async (user, status, price, at, extra = {}) => {
+  await db.exec('reset role; set role service_role;');
+  try {
+    return (await db.query('select public.apply_subscription($1, $2, $3, $4, $5, $6, $7, $8) as r',
+      [user, extra.sub || 'sub_e', 'ctm_e', status, price, extra.periodEnd || null, extra.cancel || false, at])).rows[0].r;
+  } finally { await db.exec('reset role'); }
+};
+const planOf = async u => (await db.query('select plan from public.profiles where id = $1', [u])).rows[0].plan;
+
+// Nadie más que el servidor puede aplicar un pago (ni el usuario, ni sin sesión)
+await fails(E, `select public.apply_subscription('${E}', 's', 'c', 'active', '${AGENCIA_MES}', null, false, now())`, /permission denied/);
+await fails(E, `select * from public.paddle_ids_for('${E}')`, /permission denied/);
+await fails(E, `insert into public.subscriptions (user_id, paddle_subscription_id, paddle_customer_id, status, plan, event_at) values ('${E}','s','c','active','agencia',now())`, /permission denied/);
+
+// Contrata Agencia: sube el plan y puede usar sus límites
+assert.strictEqual(await apply(E, 'active', AGENCIA_MES, '2026-11-08T10:00:00Z'), 'agencia');
+assert.strictEqual(await planOf(E), 'agencia');
+for (let i = 0; i < 7; i++) await add(E, `https://e${i}.com`, 30);
+// Ve su suscripción; otro usuario no
+assert.strictEqual((await as(E, 'select plan, status from public.subscriptions')).rows[0].plan, 'agencia');
+assert.strictEqual((await as(F, 'select * from public.subscriptions')).rows.length, 0);
+
+// Un aviso viejo que llega tarde no deshace uno más nuevo
+assert.strictEqual(await apply(E, 'canceled', AGENCIA_MES, '2026-11-08T09:00:00Z'), 'ignorado');
+assert.strictEqual(await planOf(E), 'agencia');
+
+// Cobro fallido en reintentos: conserva el plan
+assert.strictEqual(await apply(E, 'past_due', AGENCIA_MES, '2026-11-08T11:00:00Z'), 'agencia');
+
+// Cancela: vuelve a Gratis, intervalos al mínimo y los monitores que sobran quedan en pausa
+assert.strictEqual(await apply(E, 'canceled', AGENCIA_MES, '2026-11-08T12:00:00Z'), 'free');
+assert.strictEqual(await planOf(E), 'free');
+const after = (await db.query('select interval_seconds, paused from public.monitors where user_id = $1 order by created_at, id', [E])).rows;
+assert.ok(after.every(m => m.interval_seconds === 300));
+assert.deepStrictEqual(after.map(m => m.paused), [false, false, false, false, false, true, true]);
+// El comprobador no reserva los pausados
+await db.exec('update public.monitors set last_checked_at = null');
+const claimedIds = (await checker('select id from public.checker_claim(200)')).rows.map(r => r.id);
+const pausedIds = (await db.query('select id from public.monitors where paused')).rows.map(r => r.id);
+assert.ok(pausedIds.length === 2 && pausedIds.every(id => !claimedIds.includes(id)));
+// No puede crear otro monitor mientras supere el límite, ni quitarse la pausa
+await fails(E, `insert into public.monitors (name, url, interval_seconds) values ('x','https://nuevo-e.com',300)`, /permite 5 monitores/);
+await fails(E, 'update public.monitors set paused = false', /permission denied/);
+
+// Vuelve a pagar (Freelancer): se reactivan solos
+assert.strictEqual(await apply(E, 'active', FREELANCER_MES, '2026-11-09T10:00:00Z', { sub: 'sub_e2' }), 'freelancer');
+assert.ok((await db.query('select bool_and(not paused) as ok from public.monitors where user_id = $1', [E])).rows[0].ok);
+
+// La cancelación de OTRA suscripción no le quita el plan a la que sigue pagada
+assert.strictEqual(await apply(E, 'canceled', AGENCIA_MES, '2026-11-09T11:00:00Z', { sub: 'sub_ajena' }), 'ignorado');
+assert.strictEqual(await planOf(E), 'freelancer');
+
+// Un precio desconocido nunca regala un plan
+assert.strictEqual(await apply(F, 'active', 'pri_falso', '2026-11-09T10:00:00Z', { sub: 'sub_f' }), 'free');
+assert.strictEqual(await planOf(F), 'free');
+
+// Borrar la cuenta borra su suscripción
+await db.query('delete from auth.users where id = $1', [E]);
+assert.strictEqual((await db.query(`select count(*)::int as n from public.subscriptions where user_id = '${E}'`)).rows[0].n, 0);
+
 console.log('migración de cuentas: todos los tests pasan');

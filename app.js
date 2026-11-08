@@ -241,7 +241,7 @@ $('[data-login]').addEventListener('submit', async e => {
     busy(f, false);
     if (error) { formMsg(f, authError(error)); f.elements.totp.select(); return; }
     mfaNeeded = false; totpBox.hidden = true; f.reset();
-    location.hash = '#/app';
+    location.hash = nextAfterLogin();
     return;
   }
 
@@ -271,8 +271,14 @@ $('[data-login]').addEventListener('submit', async e => {
     return;
   }
   f.reset();
-  location.hash = '#/app';
+  location.hash = nextAfterLogin();
 });
+
+function nextAfterLogin() {
+  let next = '';
+  try { next = sessionStorage.getItem('latido-next') || ''; sessionStorage.removeItem('latido-next'); } catch { /* sin almacenamiento */ }
+  return /^#\/checkout\?plan=(freelancer|agencia)&ciclo=(mensual|anual)$/.test(next) || next === '#/checkout' ? next : '#/app';
+}
 
 async function refreshMfa() {
   const { data } = await sb.auth.mfa.getAuthenticatorAssuranceLevel();
@@ -323,27 +329,51 @@ function renderCheckout(params) {
   $('[data-co-price]').textContent = c === 'anual' ? `${yearly(p.price)} $ al año (equivale a ${fmt(yearly(p.price) / 12)} $/mes)` : `${p.price} $ al mes`;
   $('[data-co-cycle]').textContent = c === 'anual' ? 'Cada año' : 'Cada mes';
   $('[data-checkout]').dataset.plan = key;
+  $('[data-checkout]').dataset.cycle = c;
 }
+let paddleReady = false;
+function initPaddle() {
+  if (paddleReady || !window.Paddle || !CFG.paddle.clientToken) return paddleReady;
+  if (CFG.paddle.environment === 'sandbox') window.Paddle.Environment.set('sandbox');
+  window.Paddle.Initialize({
+    token: CFG.paddle.clientToken,
+    eventCallback: ev => { if (ev && ev.name === 'checkout.completed') awaitingPayment = true; }
+  });
+  return (paddleReady = true);
+}
+let awaitingPayment = false;
 $('[data-checkout]').addEventListener('submit', e => {
   e.preventDefault();
   const f = e.currentTarget;
   if (!f.elements.start.checked) { setMsg(f, 'start', 'Marca la casilla para empezar ya.'); return; }
   setMsg(f, 'start', '');
-  formMsg(f, 'Los pagos con Paddle se activan en la próxima fase. Mientras tanto puedes usar el plan Gratis.', true);
+  if (!session) { location.hash = '#/login'; return; }
+  if (!initPaddle()) { formMsg(f, 'El pago no está disponible ahora mismo. Recarga la página o inténtalo más tarde.'); return; }
+  const priceId = CFG.paddle.prices[f.dataset.plan][f.dataset.cycle];
+  formMsg(f, '');
+  window.Paddle.Checkout.open({
+    items: [{ priceId, quantity: 1 }],
+    customer: { email: session.user.email },
+    // El servidor solo usa este id para saber a qué cuenta aplicar el pago; el plan lo decide el precio
+    customData: { user_id: session.user.id },
+    settings: { displayMode: 'overlay', locale: 'es', theme: 'light', allowLogout: false,
+                successUrl: `${location.origin}${location.pathname}?r=app&pago=ok` }
+  });
 });
 
 // ---------- Panel ----------
-let profile = null, plan = null, monitors = [], checks = new Map(); // monitor_id -> resultados de 24 h
+let profile = null, plan = null, monitors = [], subscription = null, checks = new Map(); // monitor_id -> resultados de 24 h
 
 async function loadDash() {
-  const [p, m, h] = await Promise.all([
+  const [p, m, h, s] = await Promise.all([
     sb.from('profiles').select('name, plan, plans(name, max_monitors, min_interval)').single(),
-    sb.from('monitors').select('id, name, url, client, interval_seconds, created_at, state, state_since, last_checked_at, last_status, last_ms, last_error').order('created_at'),
+    sb.from('monitors').select('id, name, url, client, interval_seconds, created_at, state, state_since, last_checked_at, last_status, last_ms, last_error, paused').order('created_at'),
     sb.from('monitor_checks').select('monitor_id, ok, checked_at')
-      .gte('checked_at', new Date(Date.now() - 864e5).toISOString()).order('checked_at').limit(5000)
+      .gte('checked_at', new Date(Date.now() - 864e5).toISOString()).order('checked_at').limit(5000),
+    sb.from('subscriptions').select('plan, status, current_period_end, scheduled_cancel').maybeSingle()
   ]);
   if (p.error || m.error) { toast('No pudimos cargar tus datos. Recarga la página.'); return; }
-  profile = p.data; plan = p.data.plans; monitors = m.data;
+  profile = p.data; plan = p.data.plans; monitors = m.data; subscription = s && !s.error ? s.data : null;
   checks = new Map();
   for (const c of (h.data || [])) { if (!checks.has(c.monitor_id)) checks.set(c.monitor_id, []); checks.get(c.monitor_id).push(c); }
   renderDash();
@@ -381,7 +411,8 @@ function renderMonitors() {
     const sm = document.createElement('small'); sm.textContent = m.url;
     if (m.state === 'down' && m.last_error) { const er = document.createElement('small'); er.className = 't-down'; er.textContent = m.last_error; sp.append(b, sm, er); }
     else sp.append(b, sm);
-    svc.append(dot(m.state === 'pending' ? 'new' : m.state), sp);
+    if (m.paused) { const pz = document.createElement('small'); pz.textContent = 'En pausa: supera el límite de tu plan'; sp.append(pz); }
+    svc.append(dot(m.paused || m.state === 'pending' ? 'new' : m.state), sp);
     const cl = document.createElement('td'); cl.textContent = m.client || '—';
     const hist = document.createElement('td');
     const list = checks.get(m.id) || [];
@@ -429,7 +460,16 @@ function renderDash() {
   renderMonitors(); renderIntervals();
   $('[data-account-line]').textContent = `Panel · ${session.user.email}`;
   $('[data-plan-line]').textContent = `Plan ${plan.name}`;
-  $('[data-sub-line]').textContent = profile.plan === 'free' ? 'Plan Gratis · sin cobros.' : `Plan ${plan.name}.`;
+  const paid = profile.plan !== 'free' && subscription;
+  const until = subscription && subscription.current_period_end
+    ? new Date(subscription.current_period_end).toLocaleDateString('es', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+  $('[data-sub-line]').textContent = !paid ? 'Plan Gratis · sin cobros.'
+    : subscription.scheduled_cancel ? `Plan ${plan.name} · cancelado: sigue activo hasta el ${until}.`
+    : subscription.status === 'past_due' ? `Plan ${plan.name} · no pudimos cobrar: actualiza tu tarjeta.`
+    : `Plan ${plan.name} · se renueva el ${until}.`;
+  $('[data-sub-upgrade]').hidden = !!paid;
+  $$('[data-sub-paid]').forEach(b => { b.hidden = !paid; });
+  $('[data-action="cancel-sub"]').hidden = !paid || subscription.scheduled_cancel;
   $('[data-stat-count]').textContent = monitors.length;
   $('[data-stat-down]').textContent = monitors.filter(m => m.state === 'down').length;
   const all = [...checks.values()].flat();
@@ -450,7 +490,7 @@ $('[data-add-monitor]').addEventListener('submit', async e => {
   busy(f, true);
   const { data, error } = await sb.from('monitors')
     .insert({ name, url: r.url.href, client: f.elements.client.value.trim(), interval_seconds: interval })
-    .select('id, name, url, client, interval_seconds, created_at, state, state_since, last_checked_at, last_status, last_ms, last_error').single();
+    .select('id, name, url, client, interval_seconds, created_at, state, state_since, last_checked_at, last_status, last_ms, last_error, paused').single();
   busy(f, false);
   if (error) {
     // Los límites del plan los aplica la base de datos (código P0001, mensaje en español)
@@ -509,7 +549,18 @@ $('[data-2fa-form]').addEventListener('submit', async e => {
 });
 
 // ---------- Acciones de cuenta ----------
+async function portalLink(kind) {
+  const out = $('[data-cancel-out]');
+  out.textContent = 'Abriendo el portal de Paddle…';
+  const { data, error } = await sb.functions.invoke('billing-portal', { method: 'POST' });
+  const url = !error && data && (kind === 'cancel' ? data.cancel || data.portal : data.portal);
+  if (!url || !/^https:\/\/[a-z0-9.-]*paddle\.com\//i.test(url)) { out.textContent = 'No pudimos abrir el portal. Inténtalo de nuevo en unos minutos.'; return; }
+  out.textContent = '';
+  location.href = url;
+}
 const actions = {
+  portal() { return portalLink('portal'); },
+  'cancel-sub'() { return portalLink('cancel'); },
   async logout() {
     await sb.auth.signOut();
     toast('Sesión cerrada.');
@@ -608,6 +659,7 @@ function route() {
     location.replace('#/login'); return;
   }
   if (path === '/verifica' && !pendingEmail) { location.replace('#/registro'); return; }
+  if (path === '/checkout' && (!session || mfaNeeded)) { try { sessionStorage.setItem('latido-next', location.hash); } catch { /* sin almacenamiento */ } location.replace('#/login'); return; }
   const views = $$('[data-view]');
   const view = views.find(v => v.dataset.view === path) || views.find(v => v.dataset.view === '404');
   views.forEach(v => { v.hidden = v !== view; });
@@ -648,6 +700,17 @@ document.addEventListener('click', e => {
   if (a && a.hash === location.hash && !e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey) { e.preventDefault(); route(); }
 });
 
+/** Tras pagar, el plan lo activa el webhook firmado de Paddle (no el navegador): esperamos a verlo. */
+async function waitForPlan() {
+  toast('Pago recibido. Activando tu plan…');
+  for (let i = 0; i < 20; i++) {
+    await new Promise(r => setTimeout(r, 3000));
+    const { data } = await sb.from('profiles').select('plan').maybeSingle();
+    if (data && data.plan !== 'free') { toast('¡Listo! Tu plan ya está activo.'); if (location.hash === '#/app') loadDash(); return; }
+  }
+  toast('Tu pago está confirmado; el plan puede tardar unos minutos en activarse. Recarga más tarde.');
+}
+
 // ---------- Arranque ----------
 renderHero();
 renderStatus();
@@ -668,6 +731,7 @@ sb.auth.onAuthStateChange((event, s) => {
   if (back || linkError || params.has('code')) {
     const next = back === 'nueva-clave' ? '#/nueva-clave' : '#/app';
     history.replaceState(null, '', location.pathname + (session ? next : '#/login'));
+    if (params.get('pago') === 'ok') waitForPlan();
     if (linkError) toast('El enlace no es válido o ya caducó. Pide uno nuevo.');
     else if (!session && back === 'app') toast('Email confirmado. Ya puedes iniciar sesión.');
   }

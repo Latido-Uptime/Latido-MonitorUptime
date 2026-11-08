@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://challenges.cloudflare.com https://static.cloudflareinsights.com; frame-src https://challenges.cloudflare.com; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://api.pwnedpasswords.com https://udsyguzfvtlpersuwbjl.supabase.co https://cloudflareinsights.com; form-action 'self'; base-uri 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://challenges.cloudflare.com https://static.cloudflareinsights.com https://cdn.paddle.com; frame-src https://challenges.cloudflare.com https://*.paddle.com; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://api.pwnedpasswords.com https://udsyguzfvtlpersuwbjl.supabase.co https://cloudflareinsights.com https://*.paddle.com; form-action 'self'; base-uri 'none'; object-src 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="page-type" content="software">
 <meta name="site-kind" content="software">
@@ -21,6 +21,7 @@
 <script src="vendor/supabase-2.119.0.js" defer></script>
 <script src="config.js" defer></script>
 <script src="ssrf-guard.js" defer></script>
+<script src="https://cdn.paddle.com/paddle/v2/paddle.js" defer></script>
 <script src="app.js" defer></script>
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&amp;onload=latidoTurnstileReady" defer></script>
 </head>
@@ -50,7 +51,7 @@
 </header>
 
 <main id="main" tabindex="-1">
-<p class="notice wrap">Beta. Las cuentas, las comprobaciones de tus monitores y los avisos por email son reales. Los planes de pago se activan pronto: mientras tanto usa el plan Gratis. Los textos legales son un borrador.</p>
+<p class="notice wrap">Beta. Las cuentas, las comprobaciones de tus monitores y los avisos por email son reales. Los pagos están en modo de prueba: usa una tarjeta de prueba de Paddle, no se cobra nada. Los textos legales son un borrador.</p>
 
 <!-- ================= LANDING ================= -->
 <div data-view="/">
@@ -452,7 +453,10 @@
           <div>
             <h3 class="h4">Suscripción</h3>
             <p class="muted small" data-sub-line>Plan Gratis · sin cobros.</p>
-            <p class="hint">Los planes de pago y su cancelación en un clic llegan con la fase de pagos.</p>
+            <a class="btn btn-primary btn-sm" href="#/#precios" data-sub-upgrade>Mejorar plan</a>
+            <button class="btn btn-ghost btn-sm" type="button" data-action="portal" data-sub-paid hidden>Facturas y tarjeta</button>
+            <button class="btn btn-ghost btn-sm" type="button" data-action="cancel-sub" data-sub-paid hidden>Cancelar suscripción</button>
+            <p class="small" data-cancel-out role="status"></p>
             <p class="small" data-cancel-out role="status"></p>
           </div>
           <div>

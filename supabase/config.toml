@@ -1,0 +1,10 @@
+# Configuración de las Edge Functions de Latido
+project_id = "udsyguzfvtlpersuwbjl"
+
+# Paddle no envía un token de sesión: la seguridad es la firma HMAC que verifica la función
+[functions.paddle-webhook]
+verify_jwt = false
+
+# Solo usuarios con sesión
+[functions.billing-portal]
+verify_jwt = true
