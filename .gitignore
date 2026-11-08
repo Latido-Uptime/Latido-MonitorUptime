@@ -27,3 +27,6 @@ monitor/*.db-*
 
 # Historiales de otras herramientas
 .Rhistory
+
+# Archivos internos de la CLI de Supabase
+supabase/.temp/
