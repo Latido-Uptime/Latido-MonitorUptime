@@ -71,7 +71,7 @@
 
     <!-- UI real del producto, en HTML vivo -->
     <figure class="app-frame" aria-label="Vista previa del panel de Latido">
-      <div class="af-bar"><span></span><span></span><span></span><b class="mono">app.latido.example / clientes</b></div>
+      <div class="af-bar"><span></span><span></span><span></span><b class="mono">latidouptime.com / clientes</b></div>
       <div class="af-body">
         <aside class="af-side" aria-hidden="true">
           <p class="mono af-label">Clientes</p>
@@ -157,7 +157,7 @@
         <li><b>Comprobadores aislados,</b> en máquinas sin acceso a la base de datos.</li>
         <li><b>Límites anti-abuso:</b> intervalo mínimo por plan, monitores por cuenta y por dominio entre todas las cuentas.</li>
         <li><b>Webhooks firmados con HMAC-SHA256</b> y pasados por el mismo filtro.</li>
-        <li><b>Login probado</b> con 2FA por app, contraseñas con Argon2id y comprobadas contra filtraciones conocidas.</li>
+        <li><b>Login probado</b> con 2FA por app, contraseñas cifradas con bcrypt y comprobadas contra filtraciones conocidas.</li>
         <li><b>Pagos con Paddle:</b> nunca vemos tu tarjeta.</li>
       </ul>
     </div>
@@ -228,7 +228,7 @@
         <a class="btn btn-primary" href="#/checkout?plan=agencia" data-plan-link="agencia">Elegir Agencia</a>
       </article>
     </div>
-    <p class="muted small measure">Cancela desde tu cuenta en un clic. Te avisamos 7 días antes de cada renovación anual. Pago y facturas con Paddle, que calcula el IVA de tu país.</p>
+    <p class="muted small measure">Cancela desde tu cuenta en un clic. Te avisamos 7 días antes de cada renovación anual. Pago y facturas con Paddle, que calcula el IVA de tu país. <a href="#/reembolsos">Reembolso en 14 días</a>.</p>
   </div>
 </section>
 
@@ -236,10 +236,10 @@
   <div class="wrap"><div class="measure">
     <h2>Preguntas antes de empezar</h2>
     <details><summary>¿Puedo monitorizar webs que no son mías?</summary><p>Solo las de tus clientes o las que tengas permiso para vigilar. Los <a href="#/terminos">términos</a> prohíben usar Latido para saturar o sondear sitios ajenos, y los límites por dominio lo frenan.</p></details>
-    <details><summary>¿Qué pasa si una alerta llega tarde?</summary><p>Comprobamos desde 3 regiones y confirmamos la caída en 2 de ellas antes de avisar. Aun así ningún sistema es infalible: la responsabilidad está limitada como explican los términos.</p></details>
+    <details><summary>¿Qué pasa si una alerta llega tarde?</summary><p>Antes de avisar repetimos la comprobación unos segundos después, para no darte falsas alarmas. Aun así ningún sistema es infalible: la responsabilidad está limitada como explican los términos.</p></details>
     <details><summary>¿Ve mi cliente datos técnicos?</summary><p>No. La página de estado muestra nombres de servicio, uptime e incidencias. Nunca URLs internas, IPs ni errores, salvo que tú lo actives.</p></details>
     <details><summary>¿Cómo cancelo?</summary><p>En Cuenta → Suscripción → Cancelar. Sin llamadas ni emails. Sigues con tu plan hasta el final del periodo pagado.</p></details>
-    <details><summary>¿Dónde están mis datos y cómo los borro?</summary><p>En servidores de la UE. Puedes exportarlos o borrar tu cuenta desde Ajustes; borramos todo en 30 días salvo las facturas que la ley obliga a guardar.</p></details>
+    <details><summary>¿Dónde están mis datos y cómo los borro?</summary><p>En servidores de Supabase y Fly.io en Estados Unidos. Puedes exportarlos o borrar tu cuenta desde tu panel; al borrarla se eliminan al momento. Paddle conserva las facturas que la ley obliga a guardar.</p></details>
   </div></div>
 </section>
 
@@ -361,10 +361,10 @@
         <dt>Precio</dt><dd data-co-price></dd>
         <dt>Frecuencia</dt><dd data-co-cycle></dd>
         <dt>Impuestos</dt><dd>Paddle añade el IVA de tu país en el siguiente paso</dd>
-        <dt>Renovación</dt><dd>Automática. Cancela cuando quieras desde tu cuenta; avisamos 7 días antes de renovar un plan anual.</dd>
+        <dt>Renovación</dt><dd>Automática. Cancela cuando quieras desde tu panel en un clic; conservas el plan hasta el final del periodo pagado.</dd>
       </dl>
       <form class="form" data-checkout novalidate>
-        <label class="check"><input type="checkbox" name="start" required> <span>Quiero que el servicio empiece ya y acepto que pierdo el derecho de desistimiento de 14 días una vez empezado.</span></label>
+        <label class="check"><input type="checkbox" name="start" required> <span>Quiero que el servicio empiece ya. Puedo pedir el reembolso en los 14 días siguientes según la <a href="#/reembolsos">política de reembolsos</a>.</span></label>
         <p class="field-msg" data-msg="start"></p>
         <button class="btn btn-primary btn-block" type="submit">Ir al pago seguro con Paddle</button>
         <p class="form-msg" data-form-msg role="status"></p>
@@ -499,27 +499,40 @@
 <div data-view="/terminos" hidden>
   <section class="legal"><div class="wrap narrow">
     <h1>Términos de uso</h1>
-    <p class="notice">Borrador orientativo. Revísalo con un abogado de tu país antes de cobrar a clientes.</p>
-    <h2 class="h3">1. El servicio</h2><p>Latido comprueba periódicamente la disponibilidad de URLs que el usuario registra y le avisa de los cambios de estado. El servicio está dirigido a mayores de 18 años y a empresas o profesionales.</p>
-    <h2 class="h3">2. Uso permitido y prohibido</h2><p>Solo puedes monitorizar sitios propios o para los que tengas permiso de su titular. Está prohibido usar Latido para sondear redes internas, saturar, escanear o atacar sitios de terceros, o para eludir los límites del plan. Podemos suspender sin aviso las cuentas que lo incumplan.</p>
-    <h2 class="h3">3. Planes, pagos y cancelación</h2><p>Los planes de pago se renuevan automáticamente cada mes o cada año. Paddle actúa como revendedor (Merchant of Record) y emite las facturas con los impuestos aplicables. Puedes cancelar en cualquier momento desde tu cuenta; conservas el plan hasta el fin del periodo pagado. Avisamos por email 7 días antes de renovar un plan anual.</p>
-    <h2 class="h3">4. Desistimiento</h2><p>Si eres consumidor en la UE tienes 14 días para desistir, salvo que hayas pedido expresamente que el servicio empiece antes y aceptado perder ese derecho.</p>
-    <h2 class="h3">5. Disponibilidad y limitación de responsabilidad</h2><p>Hacemos lo razonable para que las alertas lleguen a tiempo, pero no garantizamos que nunca fallen o se retrasen. No respondemos por pérdidas derivadas de una alerta fallida o tardía. Nuestra responsabilidad total se limita a lo que nos hayas pagado en los 12 meses anteriores.</p>
-    <h2 class="h3">6. SLA</h2><p>El plan Agencia incluye un objetivo de disponibilidad del panel y de las comprobaciones del 99,9 % mensual. Si no se cumple, compensamos con crédito proporcional en la siguiente factura, nunca en dinero.</p>
-    <h2 class="h3">7. Ley aplicable</h2><p>[Ley y tribunales del país donde registres el negocio.]</p>
+    <p class="muted small">Última actualización: 8 de noviembre de 2026.</p>
+    <h2 class="h3">1. Quiénes somos</h2><p>Latido es un servicio de Luis Fernando Saverio Rodriguez, persona natural con domicilio fiscal en Ecuador («Latido», «nosotros»). Contacto: <a href="mailto:luis@latidouptime.com">luis@latidouptime.com</a>.</p>
+    <h2 class="h3">2. El servicio</h2><p>Latido comprueba periódicamente la disponibilidad de las URLs que registras y te avisa por email cuando dejan de responder y cuando vuelven. Está dirigido a mayores de 18 años y a empresas o profesionales.</p>
+    <h2 class="h3">3. Uso permitido y prohibido</h2><p>Solo puedes monitorizar sitios propios o para los que tengas permiso de su titular. Está prohibido usar Latido para sondear redes internas, saturar, escanear o atacar sitios de terceros, o para eludir los límites del plan. Podemos suspender o cerrar las cuentas que lo incumplan.</p>
+    <h2 class="h3">4. Pagos y revendedor</h2><p>Nuestro proceso de compra lo gestiona nuestro revendedor en línea Paddle.com. Paddle.com es el Merchant of Record de todos nuestros pedidos: cobra el pago, emite la factura con los impuestos aplicables y atiende las consultas de facturación y las devoluciones.</p>
+    <h2 class="h3">5. Renovación y cancelación</h2><p>Los planes de pago se renuevan automáticamente cada mes o cada año, según el que elijas, al precio indicado más los impuestos de tu país. Puedes cancelar en cualquier momento desde tu panel (Cuenta y seguridad → Suscripción); no se te volverá a cobrar y conservas el plan hasta el final del periodo pagado. Si tu plan termina, los monitores que superen el límite del plan Gratis quedan en pausa.</p>
+    <h2 class="h3">6. Reembolsos</h2><p>Puedes pedir el reembolso en los 14 días siguientes a cada pago. Los detalles están en la <a href="#/reembolsos">política de reembolsos</a>.</p>
+    <h2 class="h3">7. Disponibilidad y limitación de responsabilidad</h2><p>Hacemos lo razonable para que las comprobaciones y los avisos funcionen y lleguen a tiempo, pero no garantizamos que nunca fallen o se retrasen. No respondemos por pérdidas derivadas de un aviso fallido o tardío. Nuestra responsabilidad total se limita a lo que nos hayas pagado en los 12 meses anteriores.</p>
+    <h2 class="h3">8. Cambios</h2><p>Si cambiamos estos términos de forma importante, te avisaremos por email con al menos 15 días de antelación.</p>
+    <h2 class="h3">9. Ley aplicable</h2><p>Estos términos se rigen por las leyes de la República del Ecuador. Cualquier controversia se someterá a los jueces competentes de Ecuador, sin perjuicio de los derechos que te reconozca la ley de tu país como consumidor.</p>
   </div></section>
 </div>
 
 <div data-view="/privacidad" hidden>
   <section class="legal"><div class="wrap narrow">
     <h1>Política de privacidad</h1>
-    <p class="notice">Borrador orientativo según RGPD, LGPD, LFPDPPP, Ley 1581, Ley 25.326 y CCPA. Revísalo con un profesional.</p>
-    <h2 class="h3">Qué datos guardamos</h2><p>Email, nombre o agencia, hash de la contraseña (Argon2id), IP y navegador de los inicios de sesión, URLs monitorizadas con sus resultados (código de estado y tiempo, nunca el contenido), números de teléfono verificados para SMS y el estado de tu suscripción. No guardamos datos de tarjeta: los gestiona Paddle.</p>
-    <h2 class="h3">Para qué</h2><p>Prestar el servicio, enviarte alertas y facturas, proteger tu cuenta y, solo si lo aceptas, enviarte novedades.</p>
-    <h2 class="h3">Cuánto tiempo</h2><p>Resultados de comprobaciones: el historial de tu plan (30 días a 13 meses). Registros de seguridad: 12 meses. Facturas: lo que exija la ley fiscal. Al borrar la cuenta eliminamos el resto en 30 días.</p>
-    <h2 class="h3">Con quién los compartimos</h2><p>Proveedores con contrato de tratamiento (DPA): hosting en la UE, Paddle (pagos), proveedor de email y de SMS, Cloudflare (seguridad). Nunca los vendemos.</p>
-    <h2 class="h3">Tus derechos</h2><p>Acceder, corregir, exportar y borrar tus datos desde Ajustes o escribiendo a privacidad@latido.example. Respondemos en menos de un mes. Si hay una brecha que te afecte, te avisamos y lo notificamos a la autoridad en 72 horas.</p>
-    <h2 class="h3">Clientes empresa</h2><p>Tenemos un DPA listo para agencias que monitorizan sistemas de terceros. Pídelo a privacidad@latido.example.</p>
+    <p class="muted small">Última actualización: 8 de noviembre de 2026.</p>
+    <h2 class="h3">Responsable</h2><p>Luis Fernando Saverio Rodriguez (Latido), Ecuador. Contacto: <a href="mailto:luis@latidouptime.com">luis@latidouptime.com</a>. Tratamos tus datos según la Ley Orgánica de Protección de Datos Personales de Ecuador y, si estás en la Unión Europea, el RGPD.</p>
+    <h2 class="h3">Qué datos guardamos</h2><p>Tu email y nombre o agencia; tu contraseña cifrada con bcrypt (nunca en texto legible); la IP y el navegador de tus inicios de sesión; las URLs que monitorizas y el resultado de cada comprobación (código de estado, tiempo de respuesta y mensaje de error, nunca el contenido de la página); y el estado de tu suscripción. No vemos ni guardamos los datos de tu tarjeta: los gestiona Paddle.</p>
+    <h2 class="h3">Para qué</h2><p>Prestarte el servicio, enviarte los avisos de tus monitores y los emails de tu cuenta, proteger tu cuenta frente a accesos indebidos y, solo si lo aceptas, enviarte novedades.</p>
+    <h2 class="h3">Cuánto tiempo</h2><p>El historial de comprobaciones, 90 días. Los datos de tu cuenta, mientras la mantengas. Al borrar la cuenta eliminamos tu perfil, tus monitores y su historial de inmediato; Paddle conserva las facturas el tiempo que exige la ley fiscal.</p>
+    <h2 class="h3">Con quién los compartimos</h2><p>Solo con los proveedores que necesitamos para funcionar: Supabase (base de datos y cuentas), Fly.io (comprobaciones), Cloudflare (web, seguridad, verificación anti-bots y analítica sin cookies), Resend (envío de emails) y Paddle (pagos). Supabase y Fly.io guardan y procesan los datos en Estados Unidos. Nunca vendemos tus datos.</p>
+    <h2 class="h3">Tus derechos</h2><p>Puedes acceder a tus datos, corregirlos, exportarlos y borrarlos desde tu panel (Cuenta y seguridad → Tus datos) o escribiendo a <a href="mailto:luis@latidouptime.com">luis@latidouptime.com</a>. Respondemos en un máximo de 30 días. Si sufriéramos una brecha de seguridad que afecte a tus datos, te avisaremos y lo notificaremos a la autoridad competente en un plazo de 72 horas.</p>
+    <h2 class="h3">Empresas</h2><p>Si necesitas un acuerdo de tratamiento de datos (DPA) porque monitorizas sistemas de tus clientes, escríbenos a <a href="mailto:luis@latidouptime.com">luis@latidouptime.com</a>.</p>
+  </div></section>
+</div>
+
+<div data-view="/reembolsos" hidden>
+  <section class="legal"><div class="wrap narrow">
+    <h1>Política de reembolsos</h1>
+    <p class="muted small">Última actualización: 8 de noviembre de 2026.</p>
+    <p>Si Latido no te convence, puedes pedir el reembolso completo en los 14 días siguientes a cualquier pago, ya sea la primera compra o una renovación. Escribe a <a href="mailto:luis@latidouptime.com">luis@latidouptime.com</a> desde el email de tu cuenta, o responde al recibo que te envió Paddle. Paddle, nuestro revendedor, devuelve el importe al mismo medio de pago, normalmente en 5 a 10 días hábiles.</p>
+    <p>Pasados esos 14 días no hacemos reembolsos parciales del periodo en curso. Puedes cancelar en cualquier momento desde tu panel: no se te volverá a cobrar y conservas el plan hasta el final del periodo pagado.</p>
+    <p>Podemos rechazar reembolsos en caso de abuso evidente, por ejemplo compras y devoluciones repetidas, o cuentas cerradas por incumplir los <a href="#/terminos">términos de uso</a>.</p>
   </div></section>
 </div>
 
@@ -533,8 +546,8 @@
 <div data-view="/aviso-legal" hidden>
   <section class="legal"><div class="wrap narrow">
     <h1>Aviso legal</h1>
-    <p>Titular: [nombre o razón social]. Identificación fiscal: [NIF]. Domicilio: [dirección]. Contacto: hola@latido.example.</p>
-    <p class="notice">Completa estos datos cuando registres la actividad. Son obligatorios en España y la UE.</p>
+    <p>Titular del sitio y del servicio Latido: Luis Fernando Saverio Rodriguez, persona natural con domicilio fiscal en Ecuador. Contacto: <a href="mailto:luis@latidouptime.com">luis@latidouptime.com</a>.</p>
+    <p>Los pagos los gestiona Paddle.com Market Ltd. como revendedor (Merchant of Record).</p>
   </div></section>
 </div>
 
@@ -554,6 +567,7 @@
       <a href="#/terminos">Términos</a>
       <a href="#/privacidad">Privacidad</a>
       <a href="#/cookies">Cookies</a>
+      <a href="#/reembolsos">Reembolsos</a>
       <a href="#/aviso-legal">Aviso legal</a>
       <a href="#/estado">Página de estado</a>
     </nav>
