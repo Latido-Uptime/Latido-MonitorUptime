@@ -1,12 +1,9 @@
 # Comprobador de Latido en Fly.io. Es un proceso de fondo: no expone ningún puerto.
+# El historial vive en Supabase (tabla monitor_checks); la máquina no guarda datos.
 app = "latido-monitor"
 primary_region = "iad"
 
 [build]
-
-[mounts]
-  source = "latido_data"
-  destination = "/data"
 
 [[vm]]
   size = "shared-cpu-1x"

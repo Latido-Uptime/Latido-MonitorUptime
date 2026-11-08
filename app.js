@@ -333,15 +333,19 @@ $('[data-checkout]').addEventListener('submit', e => {
 });
 
 // ---------- Panel ----------
-let profile = null, plan = null, monitors = [];
+let profile = null, plan = null, monitors = [], checks = new Map(); // monitor_id -> resultados de 24 h
 
 async function loadDash() {
-  const [p, m] = await Promise.all([
+  const [p, m, h] = await Promise.all([
     sb.from('profiles').select('name, plan, plans(name, max_monitors, min_interval)').single(),
-    sb.from('monitors').select('id, name, url, client, interval_seconds, created_at').order('created_at')
+    sb.from('monitors').select('id, name, url, client, interval_seconds, created_at, state, state_since, last_checked_at, last_status, last_ms, last_error').order('created_at'),
+    sb.from('monitor_checks').select('monitor_id, ok, checked_at')
+      .gte('checked_at', new Date(Date.now() - 864e5).toISOString()).order('checked_at').limit(5000)
   ]);
   if (p.error || m.error) { toast('No pudimos cargar tus datos. Recarga la página.'); return; }
   profile = p.data; plan = p.data.plans; monitors = m.data;
+  checks = new Map();
+  for (const c of (h.data || [])) { if (!checks.has(c.monitor_id)) checks.set(c.monitor_id, []); checks.get(c.monitor_id).push(c); }
   renderDash();
   render2fa();
 }
@@ -375,11 +379,16 @@ function renderMonitors() {
     const sp = document.createElement('span');
     const b = document.createElement('b'); b.textContent = m.name;
     const sm = document.createElement('small'); sm.textContent = m.url;
-    sp.append(b, sm); svc.append(dot('new'), sp);
+    if (m.state === 'down' && m.last_error) { const er = document.createElement('small'); er.className = 't-down'; er.textContent = m.last_error; sp.append(b, sm, er); }
+    else sp.append(b, sm);
+    svc.append(dot(m.state === 'pending' ? 'new' : m.state), sp);
     const cl = document.createElement('td'); cl.textContent = m.client || '—';
-    const hist = document.createElement('td'); hist.className = 'muted small'; hist.textContent = 'Sin datos aún';
+    const hist = document.createElement('td');
+    const list = checks.get(m.id) || [];
+    if (list.length) hist.appendChild(historyBars(list));
+    else { hist.className = 'muted small'; hist.textContent = m.state === 'pending' ? 'Primera comprobación en curso' : 'Sin datos en 24 h'; }
     const ms = document.createElement('td'); ms.className = 'mono';
-    ms.textContent = m.interval_seconds < 60 ? `cada ${m.interval_seconds} s` : `cada ${m.interval_seconds / 60} min`;
+    ms.textContent = m.state === 'down' ? 'caído' : m.state === 'up' ? `${m.last_ms} ms` : 'pendiente';
     const act = document.createElement('td');
     const del = document.createElement('button'); del.type = 'button'; del.className = 'del';
     del.textContent = 'Eliminar'; del.setAttribute('aria-label', 'Eliminar ' + m.name);
@@ -399,6 +408,22 @@ function renderMonitors() {
   });
 }
 
+/** Barras de las últimas 24 h: cada tramo es rojo si alguna comprobación falló en él. */
+function historyBars(list, n = 45) {
+  const wrap = document.createElement('span');
+  wrap.className = 'bars'; wrap.setAttribute('role', 'img');
+  const okPct = 100 * list.filter(c => c.ok).length / list.length;
+  wrap.setAttribute('aria-label', `Disponibilidad en 24 h: ${okPct.toFixed(2).replace('.', ',')} %`);
+  const start = Date.now() - 864e5, slot = 864e5 / n;
+  const slots = Array.from({ length: n }, () => null);
+  for (const c of list) {
+    const k = Math.min(n - 1, Math.max(0, Math.floor((new Date(c.checked_at) - start) / slot)));
+    slots[k] = slots[k] === false ? false : c.ok;
+  }
+  for (const v of slots) { const i = document.createElement('i'); i.className = v === null ? 'e' : v ? '' : 'd'; wrap.appendChild(i); }
+  return wrap;
+}
+
 function renderDash() {
   if (!plan) return;
   renderMonitors(); renderIntervals();
@@ -406,8 +431,9 @@ function renderDash() {
   $('[data-plan-line]').textContent = `Plan ${plan.name}`;
   $('[data-sub-line]').textContent = profile.plan === 'free' ? 'Plan Gratis · sin cobros.' : `Plan ${plan.name}.`;
   $('[data-stat-count]').textContent = monitors.length;
-  $('[data-stat-down]').textContent = '—';
-  $('[data-stat-uptime]').textContent = '—';
+  $('[data-stat-down]').textContent = monitors.filter(m => m.state === 'down').length;
+  const all = [...checks.values()].flat();
+  $('[data-stat-uptime]').textContent = all.length ? (100 * all.filter(c => c.ok).length / all.length).toFixed(2).replace('.', ',') + ' %' : '—';
 }
 
 $('[data-add-monitor]').addEventListener('submit', async e => {
@@ -424,7 +450,7 @@ $('[data-add-monitor]').addEventListener('submit', async e => {
   busy(f, true);
   const { data, error } = await sb.from('monitors')
     .insert({ name, url: r.url.href, client: f.elements.client.value.trim(), interval_seconds: interval })
-    .select('id, name, url, client, interval_seconds, created_at').single();
+    .select('id, name, url, client, interval_seconds, created_at, state, state_since, last_checked_at, last_status, last_ms, last_error').single();
   busy(f, false);
   if (error) {
     // Los límites del plan los aplica la base de datos (código P0001, mensaje en español)
@@ -432,9 +458,10 @@ $('[data-add-monitor]').addEventListener('submit', async e => {
     return;
   }
   monitors.push(data);
+  setTimeout(() => { if (location.hash === '#/app') loadDash(); }, 45000); // muestra la primera comprobación
   f.reset();
   renderDash();
-  formMsg(f, 'Monitor guardado. Las comprobaciones automáticas se activan en la próxima fase.', true);
+  formMsg(f, 'Monitor guardado. La primera comprobación llega en menos de un minuto.', true);
 });
 
 async function hmacHex(secret, body) {

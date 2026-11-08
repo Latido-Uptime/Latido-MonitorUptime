@@ -307,3 +307,4 @@ input[aria-invalid="true"] { border-color: var(--down); }
 .qr { display: block; background: #fff; border: 1px solid var(--line); border-radius: var(--r); margin: 8px 0; }
 .captcha-slot { min-height: 65px; margin-top: 12px; }
 .captcha-slot:empty { min-height: 0; margin: 0; }
+.bars i.e { background: var(--line); opacity: .6; }

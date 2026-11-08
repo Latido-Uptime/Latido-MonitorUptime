@@ -1,107 +1,91 @@
-// Prueba privada de Latido: revisa una web cada N segundos, guarda el historial en SQLite
-// y avisa por email cuando se cae y cuando vuelve.
-//   node --env-file=.env monitor/run.mjs            vigila sin parar
-//   node --env-file=.env monitor/run.mjs --once     una sola comprobación
-//   node --env-file=.env monitor/run.mjs --history  muestra el historial
-import { DatabaseSync } from 'node:sqlite';
+// Comprobador de Latido. Cada 30 s reserva los monitores a los que les toca, los comprueba
+// (filtro anti-SSRF en check.mjs) y guarda el resultado. Si una web cae o vuelve, avisa por email.
+// Entra en la base de datos como latido_checker: solo puede llamar a checker_claim y checker_report.
+//   node --env-file=.env monitor/run.mjs
+import postgres from 'postgres';
 import { fileURLToPath } from 'node:url';
-import { createRequire } from 'node:module';
 import { check } from './check.mjs';
 import { sendEmail } from './email.mjs';
 
-const { checkUrl } = createRequire(import.meta.url)('../ssrf-guard.js');
-const DB_PATH = process.env.DB_PATH || fileURLToPath(new URL('./data.db', import.meta.url));
-const CONFIRM_DELAY_MS = 20_000; // una caída se confirma con una segunda comprobación
-const MIN_INTERVAL = 60;
+const TICK_MS = 30_000;
+const BATCH = 50;          // monitores por ronda
+const CONCURRENCY = 10;    // comprobaciones a la vez
+const RETRY_DELAY_MS = 5_000; // una caída se confirma con una segunda comprobación
+const ALERTS_PER_HOUR = 20;   // tope de emails por cuenta y hora
+const TIME_ZONE = process.env.TIME_ZONE || 'America/Guayaquil';
 
-/** Lógica pura de transiciones: qué aviso toca enviar. */
-export function transition(prev, ok) {
-  const next = ok ? 'up' : 'down';
-  if (prev === next) return { next, alert: null };
-  if (next === 'down') return { next, alert: 'down' };
-  return { next, alert: prev === 'down' ? 'up' : null }; // primera comprobación OK: sin aviso
-}
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const fmt = d => d.toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'short', timeZone: TIME_ZONE });
+const oneLine = s => String(s ?? '').replace(/[\r\n\t]+/g, ' ').slice(0, 120);
 
-function openDb() {
-  const db = new DatabaseSync(DB_PATH);
-  db.exec(`CREATE TABLE IF NOT EXISTS checks (
-             id INTEGER PRIMARY KEY, url TEXT NOT NULL, at TEXT NOT NULL,
-             ok INTEGER NOT NULL, status INTEGER, ms INTEGER, error TEXT);
-           CREATE TABLE IF NOT EXISTS state (url TEXT PRIMARY KEY, status TEXT NOT NULL, since TEXT NOT NULL);`);
-  return db;
-}
-
-function config() {
-  const env = process.env;
-  const errors = [];
-  const url = checkUrl(env.MONITOR_URL || '');
-  if (!url.ok) errors.push(`MONITOR_URL: ${url.error}`);
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(env.ALERT_EMAIL || '')) errors.push('ALERT_EMAIL: falta un email válido');
-  if (!env.RESEND_API_KEY) errors.push('RESEND_API_KEY: falta la clave de Resend');
-  const interval = Number(env.CHECK_INTERVAL_SECONDS || 300);
-  if (!(interval >= MIN_INTERVAL)) errors.push(`CHECK_INTERVAL_SECONDS: mínimo ${MIN_INTERVAL}`);
-  if (errors.length) { console.error('Configuración incompleta en .env:\n- ' + errors.join('\n- ')); process.exit(1); }
-  return { url: url.url.href, to: env.ALERT_EMAIL, apiKey: env.RESEND_API_KEY,
-           from: env.ALERT_FROM || 'Latido <onboarding@resend.dev>', interval };
-}
-
-const TIME_ZONE = process.env.TIME_ZONE || 'America/Guayaquil'; // los servidores van en UTC
-const fmt = iso => new Date(iso).toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'medium', timeZone: TIME_ZONE });
-const minutesBetween = (a, b) => Math.max(1, Math.round((new Date(b) - new Date(a)) / 60000));
-
-async function runOnce(cfg, db) {
-  let r = await check(cfg.url);
-  if (!r.ok) {
-    await new Promise(res => setTimeout(res, CONFIRM_DELAY_MS));
-    r = await check(cfg.url);
+/** Una ronda: reserva, comprueba y guarda. Devuelve cuántos monitores comprobó. */
+export async function runBatch({ sql, checkFn = check, notify, retryDelayMs = RETRY_DELAY_MS }) {
+  const due = await sql`select id, url from public.checker_claim(${BATCH})`;
+  let next = 0;
+  async function lane() {
+    while (next < due.length) {
+      const m = due[next++];
+      try {
+        let r = await checkFn(m.url);
+        if (!r.ok) { await sleep(retryDelayMs); r = await checkFn(m.url); }
+        const alerts = await sql`select * from public.checker_report(${m.id}, ${r.ok}, ${r.status}, ${r.ms}, ${r.error})`;
+        for (const a of alerts) await notify(a, r);
+      } catch (e) {
+        console.error(`monitor ${m.id}: ${e.message}`);
+      }
+    }
   }
-  const at = new Date().toISOString();
-  db.prepare('INSERT INTO checks (url, at, ok, status, ms, error) VALUES (?, ?, ?, ?, ?, ?)')
-    .run(cfg.url, at, r.ok ? 1 : 0, r.status, r.ms, r.error);
-
-  const prevRow = db.prepare('SELECT status, since FROM state WHERE url = ?').get(cfg.url);
-  const { next, alert } = transition(prevRow?.status ?? null, r.ok);
-  if (!prevRow || prevRow.status !== next)
-    db.prepare('INSERT INTO state (url, status, since) VALUES (?, ?, ?) ON CONFLICT(url) DO UPDATE SET status = excluded.status, since = excluded.since')
-      .run(cfg.url, next, at);
-
-  console.log(`${fmt(at)}  ${r.ok ? 'OK  ' : 'CAÍDA'}  ${r.status ?? '—'}  ${r.ms ?? '—'} ms  ${r.error ?? ''}`);
-
-  if (alert === 'down') {
-    await notify(cfg, `🔴 Caída: ${cfg.url}`,
-      `${cfg.url} no responde desde ${fmt(at)}.\n\nMotivo: ${r.error}\n\nTe avisaremos cuando vuelva.\n— Latido`);
-  } else if (alert === 'up') {
-    await notify(cfg, `🟢 Recuperada: ${cfg.url}`,
-      `${cfg.url} vuelve a funcionar desde ${fmt(at)} (respuesta ${r.status} en ${r.ms} ms).\n\nEstuvo caída unos ${minutesBetween(prevRow.since, at)} min.\n— Latido`);
-  }
+  await Promise.all(Array.from({ length: Math.min(CONCURRENCY, due.length) }, lane));
+  return due.length;
 }
 
-async function notify(cfg, subject, text) {
-  try { await sendEmail({ apiKey: cfg.apiKey, from: cfg.from, to: cfg.to, subject, text }); console.log(`   aviso enviado a ${cfg.to}`); }
-  catch (e) { console.error(`   no se pudo enviar el aviso: ${e.message}`); }
+/** Texto del aviso (solo texto plano: nada que escapar). */
+export function alertEmail(a, r, now = new Date()) {
+  const name = oneLine(a.monitor_name), url = oneLine(a.monitor_url);
+  if (a.alert === 'down') return {
+    subject: `🔴 Caída: ${name}`,
+    text: `${name} (${url}) no responde desde ${fmt(now)}.\n\nMotivo: ${oneLine(r.error)}\n\nTe avisaremos cuando vuelva.\n\n— Latido · https://latidouptime.com`
+  };
+  return {
+    subject: `🟢 Recuperado: ${name}`,
+    text: `${name} (${url}) vuelve a funcionar desde ${fmt(now)} (respuesta ${r.status} en ${r.ms} ms).\n\nEstuvo caído unos ${a.down_minutes} min.\n\n— Latido · https://latidouptime.com`
+  };
 }
 
-function history(db) {
-  const rows = db.prepare('SELECT * FROM checks ORDER BY id DESC LIMIT 20').all();
-  if (!rows.length) return console.log('Todavía no hay comprobaciones.');
-  for (const r of rows.reverse()) console.log(`${fmt(r.at)}  ${r.ok ? 'OK  ' : 'CAÍDA'}  ${r.status ?? '—'}  ${r.ms ?? '—'} ms  ${r.error ?? ''}`);
-  for (const [label, hours] of [['24 h', 24], ['7 días', 168], ['30 días', 720]]) {
-    const since = new Date(Date.now() - hours * 3600e3).toISOString();
-    const { total, up } = db.prepare('SELECT COUNT(*) AS total, SUM(ok) AS up FROM checks WHERE at >= ?').get(since);
-    if (total) console.log(`Uptime ${label}: ${(100 * up / total).toFixed(2)} % (${total} comprobaciones)`);
-  }
+/** Tope de avisos por cuenta y hora, para que un fallo no inunde un buzón ni cueste dinero. */
+export function alertLimiter(max = ALERTS_PER_HOUR, windowMs = 3600e3) {
+  const sent = new Map();
+  return (email, now = Date.now()) => {
+    const recent = (sent.get(email) || []).filter(t => now - t < windowMs);
+    if (recent.length >= max) { sent.set(email, recent); return false; }
+    recent.push(now); sent.set(email, recent); return true;
+  };
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const db = openDb();
-  if (process.argv.includes('--history')) { history(db); process.exit(0); }
-  const cfg = config();
-  if (process.argv.includes('--once')) { await runOnce(cfg, db); process.exit(0); }
-  console.log(`Vigilando ${cfg.url} cada ${cfg.interval} s. Avisos a ${cfg.to}. Ctrl+C para parar.`);
-  // setTimeout encadenado: una comprobación lenta nunca se solapa con la siguiente
+  const { DATABASE_URL, RESEND_API_KEY, ALERT_FROM } = process.env;
+  const missing = ['DATABASE_URL', 'RESEND_API_KEY', 'ALERT_FROM'].filter(k => !process.env[k]);
+  if (missing.length) { console.error('Faltan variables: ' + missing.join(', ')); process.exit(1); }
+
+  // prepare: false porque el pooler de Supabase (modo transacción) no admite sentencias preparadas
+  const sql = postgres(DATABASE_URL, { ssl: 'require', prepare: false, max: 4, idle_timeout: 20, connect_timeout: 10 });
+  const allow = alertLimiter();
+  const notify = async (a, r) => {
+    if (!allow(a.email)) { console.warn(`tope de avisos alcanzado para una cuenta (monitor ${oneLine(a.monitor_name)})`); return; }
+    try { await sendEmail({ apiKey: RESEND_API_KEY, from: ALERT_FROM, to: a.email, ...alertEmail(a, r) }); }
+    catch (e) { console.error(`no se pudo enviar el aviso: ${e.message}`); }
+  };
+
+  console.log(`Comprobador de Latido en marcha: una ronda cada ${TICK_MS / 1000} s.`);
   const loop = async () => {
-    try { await runOnce(cfg, db); } catch (e) { console.error('Error inesperado:', e.message); }
-    setTimeout(loop, cfg.interval * 1000);
+    const t0 = Date.now();
+    try {
+      const n = await runBatch({ sql, notify });
+      if (n) console.log(`${fmt(new Date())}  ${n} monitores comprobados en ${Date.now() - t0} ms`);
+    } catch (e) { console.error('ronda fallida:', e.message); }
+    setTimeout(loop, Math.max(1000, TICK_MS - (Date.now() - t0)));
   };
   loop();
+  const stop = async () => { await sql.end({ timeout: 5 }); process.exit(0); };
+  process.on('SIGINT', stop); process.on('SIGTERM', stop);
 }

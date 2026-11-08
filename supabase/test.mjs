@@ -1,29 +1,8 @@
 // Prueba las migraciones en Postgres real (PGlite) con una imitación mínima de Supabase. npm test
-import { PGlite } from '@electric-sql/pglite';
-import { readFileSync, readdirSync } from 'node:fs';
 import assert from 'node:assert';
+import { createDb } from './stub.mjs';
 
-const sql = readdirSync(new URL('./migrations/', import.meta.url)).sort()
-  .map(f => readFileSync(new URL('./migrations/' + f, import.meta.url), 'utf8')).join('\n');
-const db = new PGlite();
-
-// --- Imitación de Supabase: esquema auth, roles y auth.uid() desde la variable de sesión ---
-await db.exec(`
-  create role anon nologin; create role authenticated nologin; create role service_role nologin bypassrls;
-  create schema auth;
-  create table auth.users (id uuid primary key, email text, raw_user_meta_data jsonb default '{}');
-  create function auth.uid() returns uuid language sql stable as
-    $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
-  create table auth.mfa_factors (id uuid primary key default gen_random_uuid(), user_id uuid references auth.users (id) on delete cascade, status text);
-  create function auth.jwt() returns jsonb language sql stable as
-    $$ select jsonb_build_object('aal', coalesce(nullif(current_setting('request.jwt.claim.aal', true), ''), 'aal1')) $$;
-  grant execute on function auth.jwt() to anon, authenticated;
-  grant usage on schema public, auth to anon, authenticated, service_role;
-  grant execute on function auth.uid() to anon, authenticated;
-  alter default privileges in schema public grant select, insert, update, delete on tables to anon, authenticated, service_role;
-  alter default privileges in schema public grant usage, select on sequences to anon, authenticated, service_role;
-`);
-await db.exec(sql);
+const db = await createDb();
 
 const A = '11111111-1111-1111-1111-111111111111', B = '22222222-2222-2222-2222-222222222222';
 await db.query(`insert into auth.users (id, email, raw_user_meta_data) values ($1,'a@x.com','{"name":"Agencia A","marketing":"true"}'), ($2,'b@x.com','{}')`, [A, B]);
@@ -106,5 +85,58 @@ assert.strictEqual((await as(B, 'select * from public.monitors')).rows.length, 1
 // Borrar la cuenta borra sus datos (RGPD)
 await db.query('delete from auth.users where id = $1', [B]);
 assert.strictEqual((await db.query('select count(*)::int as n from public.monitors')).rows[0].n, 0);
+
+// ---------- Fase 3: comprobaciones ----------
+const C = '33333333-3333-3333-3333-333333333333', D = '44444444-4444-4444-4444-444444444444';
+await db.query(`insert into auth.users (id, email) values ($1, 'c@x.com'), ($2, 'd@x.com')`, [C, D]);
+const mc = (await add(C, 'https://c-web.com')).rows[0].id;
+const checker = async (q, params = []) => {
+  await db.exec('reset role; set role latido_checker;');
+  try { return await db.query(q, params); } finally { await db.exec('reset role'); }
+};
+
+// El usuario no puede escribir el estado de su monitor ni llamar a las funciones del comprobador
+await fails(C, `update public.monitors set state = 'up' where id = ${mc}`, /permission denied/);
+await fails(C, `insert into public.monitors (name, url, interval_seconds, state) values ('x','https://c2.com',300,'up')`, /permission denied/);
+await fails(C, 'select * from public.checker_claim(10)', /permission denied/);
+await fails(C, `select * from public.checker_report(${mc}, true, 200, 10, null)`, /permission denied/);
+await as(C, `update public.monitors set name = 'Renombrado' where id = ${mc}`); // sí puede configurar
+
+// El comprobador no puede leer ninguna tabla ni las cuentas
+await assert.rejects(checker('select * from public.monitors'), /permission denied/);
+await assert.rejects(checker('select * from public.monitor_checks'), /permission denied/);
+await assert.rejects(checker('select * from public.profiles'), /permission denied/);
+await assert.rejects(checker('select email from auth.users'), /permission denied/);
+
+// Reserva: el monitor sale una vez y no vuelve hasta que le toque
+assert.deepStrictEqual((await checker('select * from public.checker_claim(10)')).rows.map(r => r.id), [mc]);
+assert.strictEqual((await checker('select * from public.checker_claim(10)')).rows.length, 0);
+
+// Avisos solo al cambiar de estado
+const report = (ok, status, ms, err) => checker('select * from public.checker_report($1, $2, $3, $4, $5)', [mc, ok, status, ms, err]);
+assert.strictEqual((await report(true, 200, 120, null)).rows.length, 0);                 // primera OK: sin aviso
+let alertRow = (await report(false, null, null, 'El dominio no resuelve')).rows;          // cae
+assert.strictEqual(alertRow[0].alert, 'down'); assert.strictEqual(alertRow[0].email, 'c@x.com');
+assert.strictEqual(alertRow[0].monitor_name, 'Renombrado');
+assert.strictEqual((await report(false, 503, 40, 'El servidor respondió 503')).rows.length, 0); // sigue caído
+alertRow = (await report(true, 200, 90, null)).rows;                                      // vuelve
+assert.strictEqual(alertRow[0].alert, 'up'); assert.ok(alertRow[0].down_minutes >= 1);
+await report(true, 200, 1, 'x'.repeat(500)); // un error larguísimo se recorta a 200 caracteres, sin fallar
+
+// El dueño ve su estado e historial; otro usuario no ve nada
+assert.deepStrictEqual((await as(C, `select state, last_ms from public.monitors where id = ${mc}`)).rows[0], { state: 'up', last_ms: 1 });
+assert.strictEqual((await as(C, 'select * from public.monitor_checks')).rows.length, 5);
+assert.strictEqual((await as(D, 'select * from public.monitor_checks')).rows.length, 0);
+
+// Si el cliente baja de plan, sus informes no quedan bloqueados por los límites
+await db.exec(`set role service_role; update public.profiles set plan = 'freelancer' where id = '${C}'; reset role;`);
+await as(C, `update public.monitors set interval_seconds = 60 where id = ${mc}`);
+await db.exec(`set role service_role; update public.profiles set plan = 'free' where id = '${C}'; reset role;`);
+assert.strictEqual((await report(false, 500, 30, 'El servidor respondió 500')).rows[0].alert, 'down');
+
+// Borrar el monitor borra su historial; un informe tardío de un monitor borrado no falla
+await as(C, `delete from public.monitors where id = ${mc}`);
+assert.strictEqual((await db.query('select count(*)::int as n from public.monitor_checks')).rows[0].n, 0);
+assert.strictEqual((await report(true, 200, 10, null)).rows.length, 0);
 
 console.log('migración de cuentas: todos los tests pasan');

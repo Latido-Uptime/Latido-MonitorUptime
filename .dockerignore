@@ -12,4 +12,3 @@ og.png
 *.png
 node_modules
 supabase
-package*.json

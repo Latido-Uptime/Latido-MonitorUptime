@@ -5,6 +5,10 @@
     "test": "node test-ssrf.cjs && node monitor/test.mjs && node supabase/test.mjs"
   },
   "devDependencies": {
-    "@electric-sql/pglite": "0.5.15"
+    "@electric-sql/pglite": "0.5.15",
+    "@electric-sql/pglite-socket": "0.2.18"
+  },
+  "dependencies": {
+    "postgres": "4.1.0"
   }
 }
