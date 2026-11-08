@@ -1,0 +1,12 @@
+# Nada de secretos ni datos locales dentro de la imagen
+.env
+.env.*
+.git
+monitor/*.db*
+shots
+.playwright-mcp
+.taste-skill
+.impeccable
+CLAUDE.md
+og.png
+*.png

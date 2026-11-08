@@ -42,10 +42,22 @@ Pago anual con un 20 % de descuento.
 
 En producción todas estas reglas deben repetirse en el servidor: lo que valida el navegador es solo ayuda para el usuario.
 
+## Monitor real (fase 0: prueba privada)
+
+`monitor/` vigila una web de verdad: la comprueba cada 5 minutos, guarda el historial en SQLite (`monitor/data.db`) y avisa por email con [Resend](https://resend.com) cuando se cae y cuando vuelve. Cada caída se confirma con una segunda comprobación 20 s después. Necesita Node 22.5 o superior, sin dependencias.
+
+```bash
+cp .env.example .env        # y rellénalo
+node --env-file=.env monitor/run.mjs            # vigila sin parar
+node --env-file=.env monitor/run.mjs --once     # una sola comprobación
+node monitor/run.mjs --history                  # historial y uptime
+```
+
 ## Pruebas
 
 ```bash
 node test-ssrf.cjs
+node monitor/test.mjs
 ```
 
 ## Pendiente para producción

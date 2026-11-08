@@ -1,0 +1,13 @@
+# Comprobador de Latido en Fly.io. Es un proceso de fondo: no expone ningún puerto.
+app = "latido-monitor"
+primary_region = "iad"
+
+[build]
+
+[mounts]
+  source = "latido_data"
+  destination = "/data"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"

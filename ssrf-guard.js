@@ -78,8 +78,8 @@
     if ((g[0] & 0xff00) === 0xff00) return true;               // multicast
     if ((g[0] & 0xe000) !== 0x2000) return true;             // solo unicast global (salvo traducciones anteriores)
     if (g[0] === 0x2002 || (g[0] === 0x2001 && g[1] === 0)) return true; // 6to4 y Teredo
-    if (g[0] === 0x2001 && (g[1] === 2 || g[1] === 0xdb8)) return true; // pruebas y documentaci?n
-    if (g[0] === 0x3fff && (g[1] & 0xf000) === 0) return true; // documentaci?n
+    if (g[0] === 0x2001 && (g[1] === 2 || g[1] === 0xdb8)) return true; // pruebas y documentación
+    if (g[0] === 0x3fff && (g[1] & 0xf000) === 0) return true; // documentación
     return false;
   }
 

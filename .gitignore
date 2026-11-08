@@ -20,3 +20,10 @@ desktop.ini
 .env.*
 !.env.example
 node_modules/
+
+# Historial local del monitor
+monitor/*.db
+monitor/*.db-*
+
+# Historiales de otras herramientas
+.Rhistory
