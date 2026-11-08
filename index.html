@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="es" data-type="software">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https://api.pwnedpasswords.com; form-action 'self'; base-uri 'none'; object-src 'none'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta name="page-type" content="software">
+<meta name="site-kind" content="software">
+<title>Latido — Monitor de uptime para agencias web</title>
+<meta name="description" content="Latido vigila las webs de tus clientes cada 30 segundos, te avisa por WhatsApp, Telegram o email y les da a ellos una página de estado con tu marca.">
+<meta property="og:title" content="Latido — Monitor de uptime para agencias web">
+<meta property="og:description" content="Uptime, SSL y dominios de todos tus clientes en un panel. Informes mensuales en PDF con tu marca.">
+<meta property="og:image" content="og.png">
+<meta name="theme-color" content="#eef0f3">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230b0c0e'/%3E%3Cpath d='M4 17h6l3-8 5 15 3-7h7' fill='none' stroke='%2334d27b' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="styles.css">
+<script src="ssrf-guard.js" defer></script>
+<script src="app.js" defer></script>
+</head>
+<body>
+<!-- Plan: software · palette cool-grey-cobalt (el gris frío de una consola + un azul de enlace: herramienta técnica, tranquila) · Geist + Geist Mono · radius sharp -->
+<a class="skip" href="#main">Saltar al contenido</a>
+
+<header class="nav" id="top">
+  <div class="wrap nav-row">
+    <a class="brand" href="#/" aria-label="Latido, inicio">
+      <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="6"/><path d="M4 17h6l3-8 5 15 3-7h7"/></svg>
+      <span>Latido</span>
+    </a>
+    <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-links">Menú</button>
+    <nav id="nav-links" class="nav-links" aria-label="Principal">
+      <a href="#/#funciones">Funciones</a>
+      <a href="#/#seguridad">Seguridad</a>
+      <a href="#/#precios">Precios</a>
+      <a href="#/estado">Página de estado</a>
+      <span class="nav-sep" aria-hidden="true"></span>
+      <a href="#/login" data-guest>Iniciar sesión</a>
+      <a class="btn btn-primary btn-sm" href="#/registro" data-guest>Crear cuenta gratis</a>
+      <a class="btn btn-ghost btn-sm" href="#/app" data-user hidden>Mi panel</a>
+      <button class="link-btn" type="button" data-user data-action="logout" hidden>Cerrar sesión</button>
+    </nav>
+  </div>
+</header>
+
+<main id="main" tabindex="-1">
+<p class="notice wrap">Prototipo de demostración. No crea cuentas reales, monitoriza webs, envía avisos ni cobra pagos. CAPTCHA, 2FA y verificación de email son simulados. Usa solo datos ficticios. Los planes, integraciones y textos legales describen un servicio propuesto.</p>
+
+<!-- ================= LANDING ================= -->
+<div data-view="/">
+
+<section class="hero" data-enter>
+  <div class="wrap hero-grid">
+    <div class="hero-copy">
+      <p class="eyebrow mono"><span class="dot dot-up" aria-hidden="true"></span> Para agencias y freelancers web</p>
+      <h1>El monitor de uptime que tus clientes también entienden.</h1>
+      <p class="lede">Latido comprueba cada web de tus clientes cada 30 segundos desde 3 regiones. Cuando algo cae, te avisa por WhatsApp o Telegram y le explica al cliente qué pasó, en su idioma, con tu logo.</p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="#/registro">Crear cuenta gratis</a>
+        <a class="btn btn-ghost" href="#/estado">Ver una página de estado</a>
+      </div>
+      <p class="fineprint">Sin tarjeta. 5 monitores gratis para siempre.</p>
+    </div>
+
+    <!-- UI real del producto, en HTML vivo -->
+    <figure class="app-frame" aria-label="Vista previa del panel de Latido">
+      <div class="af-bar"><span></span><span></span><span></span><b class="mono">app.latido.example / clientes</b></div>
+      <div class="af-body">
+        <aside class="af-side" aria-hidden="true">
+          <p class="mono af-label">Clientes</p>
+          <ul>
+            <li class="is-on">Todos <i>14</i></li>
+            <li>Clínica Ortiz <i class="t-down">1</i></li>
+            <li>Ferretería Lumen</li>
+            <li>Hotel Brisa</li>
+            <li>Ruda Café</li>
+          </ul>
+        </aside>
+        <div class="af-main">
+          <div class="incident">
+            <div class="incident-head">
+              <span class="badge badge-down">Caída · 4 min</span>
+              <b>clinicaortiz.example</b>
+            </div>
+            <p class="diag"><span class="mono">Diagnóstico</span> El certificado SSL caducó hoy a las 09:12. El hosting responde; el problema es el certificado.</p>
+            <div class="incident-actions">
+              <button class="btn btn-primary btn-sm" type="button" data-demo-notify>Avisar al cliente</button>
+              <span class="mono muted" data-demo-notify-out>WhatsApp a Marta Ortiz · plantilla "SSL caducado"</span>
+            </div>
+          </div>
+          <ul class="mon-list" data-hero-monitors></ul>
+        </div>
+      </div>
+    </figure>
+  </div>
+</section>
+
+<section class="band" id="funciones">
+  <div class="wrap">
+    <h2>Seis cosas que otros monitores no hacen por una agencia</h2>
+    <div class="features">
+      <article class="card">
+        <span class="ic" aria-hidden="true">01</span>
+        <div class="mini" aria-hidden="true"><span class="badge badge-down">Caída</span><span class="mono">DNS ✓ · Hosting ✓ · <b class="t-down">SSL ✗</b></span></div>
+        <h3>Diagnóstico en lenguaje claro</h3>
+        <p>No solo "caído": te dice si es el DNS, el certificado, el hosting, un error 500 o el dominio vencido. Y te propone el mensaje para el cliente.</p>
+      </article>
+      <article class="card">
+        <span class="ic" aria-hidden="true">02</span>
+        <div class="mini" aria-hidden="true"><span class="client-logo sm">HB</span><span class="mono">estado.hotelbrisa.example</span><span class="badge badge-up">Operativo</span></div>
+        <h3>Página de estado con tu marca</h3>
+        <p>Una por cliente, con tu logo y tus colores. En el plan Agencia, en tu propio dominio y sin mencionar a Latido.</p>
+      </article>
+      <article class="card">
+        <span class="ic" aria-hidden="true">03</span>
+        <div class="mini" aria-hidden="true"><span class="pdf mono">PDF</span><span class="mono">Octubre · Ferretería Lumen<br><b>99,96 %</b> · 1 incidencia</span></div>
+        <h3>Informe mensual en PDF</h3>
+        <p>El día 1 cada cliente recibe su uptime, incidencias y tiempos de respuesta. Justifica tu cuota de mantenimiento sin que escribas nada.</p>
+      </article>
+      <article class="card">
+        <span class="ic" aria-hidden="true">04</span>
+        <div class="mini" aria-hidden="true"><span class="bubble">⚠ clinicaortiz.example caída desde 09:12 · SSL caducado</span></div>
+        <h3>Alertas por WhatsApp y Telegram</h3>
+        <p>Donde ya miras el móvil. Email siempre; SMS con número verificado y tope por hora para que nunca pagues de más.</p>
+      </article>
+      <article class="card">
+        <span class="ic" aria-hidden="true">05</span>
+        <div class="mini" aria-hidden="true"><span class="mono">SSL hotelbrisa.example</span><span class="badge badge-warn">6 días</span></div>
+        <h3>Vencimientos antes de que duelan</h3>
+        <p>Avisos 30, 7 y 1 día antes de que caduque el SSL o el dominio de un cliente. La caída más tonta es la que se puede prever.</p>
+      </article>
+      <article class="card">
+        <span class="ic" aria-hidden="true">06</span>
+        <div class="mini" aria-hidden="true"><span class="mono">Mar 03:00–03:30</span><span class="maint-bar"><i></i></span><span class="mono muted">en pausa</span></div>
+        <h3>Ventanas de mantenimiento</h3>
+        <p>Marca cuándo actualizas WordPress o migras de hosting. Latido no despierta a nadie ni cuenta ese rato contra el uptime del informe.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section id="seguridad">
+  <div class="wrap split">
+    <div>
+      <h2>Un monitor que no se puede usar como arma</h2>
+      <p class="lede">Un servicio que visita URLs por encargo es un blanco fácil. Así cerramos cada puerta:</p>
+      <ul class="checks">
+        <li><b>Filtro anti-SSRF.</b> Antes de cada comprobación y tras cada redirección resolvemos el DNS y bloqueamos redes privadas, loopback y metadatos de la nube.</li>
+        <li><b>Solo http y https,</b> máximo 5 redirecciones, timeout de 10 s y 1 MB como mucho. Guardamos el código de estado y el tiempo, nunca el contenido.</li>
+        <li><b>Comprobadores aislados,</b> en máquinas sin acceso a la base de datos.</li>
+        <li><b>Límites anti-abuso:</b> intervalo mínimo por plan, monitores por cuenta y por dominio entre todas las cuentas.</li>
+        <li><b>Webhooks firmados con HMAC-SHA256</b> y pasados por el mismo filtro.</li>
+        <li><b>Login probado</b> con 2FA por app, contraseñas con Argon2id y comprobadas contra filtraciones conocidas.</li>
+        <li><b>Pagos con Paddle:</b> nunca vemos tu tarjeta.</li>
+      </ul>
+    </div>
+    <div class="try">
+      <h3>Pruébalo: intenta monitorizar una dirección interna</h3>
+      <form class="form" data-ssrf-try novalidate>
+        <label for="try-url">URL</label>
+        <input type="text" id="try-url" name="url" class="mono" value="http://169.254.169.254/latest/meta-data/" autocomplete="off" spellcheck="false">
+        <p class="field-msg" data-msg="url" aria-live="polite"></p>
+        <button class="btn btn-primary" type="submit">Comprobar URL</button>
+      </form>
+      <p class="muted small">Prueba también <code>http://localhost:5432</code>, <code>http://2130706433</code> o <code>http://[::1]</code>.</p>
+    </div>
+  </div>
+</section>
+
+<section class="band" id="precios">
+  <div class="wrap">
+    <div class="price-head">
+      <h2>Precios para cobrar el mantenimiento, no para pagarlo</h2>
+      <div class="toggle" role="group" aria-label="Frecuencia de cobro">
+        <button type="button" class="is-on" aria-pressed="true" data-cycle="mensual">Mensual</button>
+        <button type="button" aria-pressed="false" data-cycle="anual">Anual <span class="save">−20 %</span></button>
+      </div>
+    </div>
+    <div class="plans">
+      <article class="plan">
+        <h3>Gratis</h3>
+        <p class="price"><b>0 $</b><span>/mes</span></p>
+        <p class="muted">Para probar con tu propia web.</p>
+        <ul>
+          <li>5 monitores</li>
+          <li>Comprobación cada 5 min</li>
+          <li>Alertas solo por email</li>
+          <li>1 página de estado</li>
+          <li>Historial de 30 días</li>
+        </ul>
+        <a class="btn btn-ghost" href="#/registro">Empezar con el plan Gratis</a>
+      </article>
+      <article class="plan">
+        <h3>Freelancer</h3>
+        <p class="price"><b data-price="9">9 $</b><span data-per>/mes</span></p>
+        <p class="muted" data-billed="9">Facturado cada mes. Impuestos según tu país.</p>
+        <ul>
+          <li>30 monitores</li>
+          <li>Comprobación cada 60 s</li>
+          <li>Email, Telegram y WhatsApp</li>
+          <li>10 páginas de estado con tu logo</li>
+          <li>Informe mensual PDF por cliente</li>
+          <li>Avisos de SSL y dominio</li>
+        </ul>
+        <a class="btn btn-ghost" href="#/checkout?plan=freelancer" data-plan-link="freelancer">Elegir Freelancer</a>
+      </article>
+      <article class="plan plan-main">
+        <p class="tag mono">Para agencias</p>
+        <h3>Agencia</h3>
+        <p class="price"><b data-price="29">29 $</b><span data-per>/mes</span></p>
+        <p class="muted" data-billed="29">Facturado cada mes. Impuestos según tu país.</p>
+        <ul>
+          <li>150 monitores</li>
+          <li>Comprobación cada 30 s desde 3 regiones</li>
+          <li>Todo lo de Freelancer</li>
+          <li>Marca blanca en tu dominio</li>
+          <li>50 SMS al mes con número verificado</li>
+          <li>Webhooks firmados y API</li>
+          <li>5 miembros de equipo con 2FA</li>
+        </ul>
+        <a class="btn btn-primary" href="#/checkout?plan=agencia" data-plan-link="agencia">Elegir Agencia</a>
+      </article>
+    </div>
+    <p class="muted small measure">Cancela desde tu cuenta en un clic. Te avisamos 7 días antes de cada renovación anual. Pago y facturas con Paddle, que calcula el IVA de tu país.</p>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="wrap"><div class="measure">
+    <h2>Preguntas antes de empezar</h2>
+    <details><summary>¿Puedo monitorizar webs que no son mías?</summary><p>Solo las de tus clientes o las que tengas permiso para vigilar. Los <a href="#/terminos">términos</a> prohíben usar Latido para saturar o sondear sitios ajenos, y los límites por dominio lo frenan.</p></details>
+    <details><summary>¿Qué pasa si una alerta llega tarde?</summary><p>Comprobamos desde 3 regiones y confirmamos la caída en 2 de ellas antes de avisar. Aun así ningún sistema es infalible: la responsabilidad está limitada como explican los términos.</p></details>
+    <details><summary>¿Ve mi cliente datos técnicos?</summary><p>No. La página de estado muestra nombres de servicio, uptime e incidencias. Nunca URLs internas, IPs ni errores, salvo que tú lo actives.</p></details>
+    <details><summary>¿Cómo cancelo?</summary><p>En Cuenta → Suscripción → Cancelar. Sin llamadas ni emails. Sigues con tu plan hasta el final del periodo pagado.</p></details>
+    <details><summary>¿Dónde están mis datos y cómo los borro?</summary><p>En servidores de la UE. Puedes exportarlos o borrar tu cuenta desde Ajustes; borramos todo en 30 días salvo las facturas que la ley obliga a guardar.</p></details>
+  </div></div>
+</section>
+
+<section class="close">
+  <div class="wrap close-row">
+    <h2>Tu próxima caída, contada antes de que llame el cliente.</h2>
+    <a class="btn btn-primary" href="#/registro">Crear cuenta gratis</a>
+  </div>
+</section>
+</div>
+
+<!-- ================= REGISTRO ================= -->
+<div data-view="/registro" hidden>
+  <section class="auth">
+    <div class="auth-card">
+      <h1>Crea tu cuenta</h1>
+      <p class="muted">Gratis, sin tarjeta. Verificaremos tu email antes de activar los monitores.</p>
+      <button class="btn btn-ghost btn-block" type="button" data-oauth>Continuar con Google</button>
+      <p class="or"><span>o con tu email</span></p>
+      <form class="form" data-register novalidate>
+        <label for="r-name">Nombre o agencia</label>
+        <input type="text" id="r-name" name="name" autocomplete="organization" maxlength="80" required>
+        <p class="field-msg" data-msg="name"></p>
+
+        <label for="r-email">Email</label>
+        <input id="r-email" name="email" type="email" autocomplete="email" maxlength="254" required>
+        <p class="field-msg" data-msg="email"></p>
+
+        <label for="r-pass">Contraseña</label>
+        <input id="r-pass" name="password" type="password" autocomplete="new-password" minlength="8" maxlength="128" required aria-describedby="r-pass-hint">
+        <p class="hint" id="r-pass-hint">Mínimo 8 caracteres. La comprobamos contra filtraciones conocidas sin enviarla (Have I Been Pwned).</p>
+        <p class="field-msg" data-msg="password" aria-live="polite"></p>
+
+        <div class="captcha" data-captcha>
+          <span class="captcha-box" aria-hidden="true"></span>
+          <span>Verificación anti-bots (Cloudflare Turnstile)</span>
+        </div>
+
+        <label class="check"><input type="checkbox" name="terms" required> <span>Tengo 18 años o más y acepto los <a href="#/terminos">términos de uso</a> y la <a href="#/privacidad">política de privacidad</a>.</span></label>
+        <p class="field-msg" data-msg="terms"></p>
+        <label class="check"><input type="checkbox" name="marketing"> <span>Quiero recibir novedades de producto por email (opcional, puedes darte de baja cuando quieras).</span></label>
+
+        <button class="btn btn-primary btn-block" type="submit">Crear cuenta</button>
+        <p class="form-msg" data-form-msg role="status"></p>
+      </form>
+      <p class="muted small center">¿Ya tienes cuenta? <a href="#/login">Inicia sesión</a></p>
+    </div>
+  </section>
+</div>
+
+<div data-view="/verifica" hidden>
+  <section class="auth">
+    <div class="auth-card">
+      <p class="eyebrow mono"><span class="dot dot-up" aria-hidden="true"></span> Paso 2 de 2</p>
+      <h1>Revisa tu email</h1>
+      <p>Te enviamos un enlace a <b data-verify-email></b>. Caduca en 60 minutos. Hasta que lo abras, puedes ver el panel pero no activar monitores.</p>
+      <a class="btn btn-primary btn-block" href="#/app" data-verify-demo>Simular clic en el enlace</a>
+    </div>
+  </section>
+</div>
+
+<!-- ================= LOGIN ================= -->
+<div data-view="/login" hidden>
+  <section class="auth">
+    <div class="auth-card">
+      <h1>Inicia sesión</h1>
+      <p class="muted small">Cuenta de prueba: <code>demo@latido.example</code> · <code>latido-demo-2026</code></p>
+      <button class="btn btn-ghost btn-block" type="button" data-oauth>Continuar con Google</button>
+      <p class="or"><span>o con tu email</span></p>
+      <form class="form" data-login novalidate>
+        <label for="l-email">Email</label>
+        <input id="l-email" name="email" type="email" autocomplete="username" required>
+        <label for="l-pass">Contraseña</label>
+        <input id="l-pass" name="password" type="password" autocomplete="current-password" required>
+        <div class="captcha" data-captcha hidden>
+          <span class="captcha-box" aria-hidden="true"></span>
+          <span>Varios intentos fallidos: confirma que eres humano (Turnstile)</span>
+        </div>
+        <div data-totp hidden>
+          <label for="l-totp">Código de tu app de autenticación</label>
+          <input type="text" id="l-totp" name="totp" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}">
+        </div>
+        <button class="btn btn-primary btn-block" type="submit">Entrar</button>
+        <p class="form-msg" data-form-msg role="status"></p>
+      </form>
+      <p class="muted small center"><a href="#/recuperar">¿Olvidaste tu contraseña?</a> · <a href="#/registro">Crear cuenta</a></p>
+    </div>
+  </section>
+</div>
+
+<div data-view="/recuperar" hidden>
+  <section class="auth">
+    <div class="auth-card">
+      <h1>Recupera tu contraseña</h1>
+      <form class="form" data-reset novalidate>
+        <label for="p-email">Email de tu cuenta</label>
+        <input id="p-email" name="email" type="email" autocomplete="email" required>
+        <button class="btn btn-primary btn-block" type="submit">Enviar enlace</button>
+        <p class="form-msg" data-form-msg role="status"></p>
+      </form>
+      <p class="muted small center"><a href="#/login">Volver a iniciar sesión</a></p>
+    </div>
+  </section>
+</div>
+
+<!-- ================= CHECKOUT ================= -->
+<div data-view="/checkout" hidden>
+  <section class="auth">
+    <div class="auth-card wide">
+      <h1>Confirma tu plan <span data-co-plan></span></h1>
+      <dl class="summary">
+        <dt>Precio</dt><dd data-co-price></dd>
+        <dt>Frecuencia</dt><dd data-co-cycle></dd>
+        <dt>Impuestos</dt><dd>Paddle añade el IVA de tu país en el siguiente paso</dd>
+        <dt>Renovación</dt><dd>Automática. Cancela cuando quieras desde tu cuenta; avisamos 7 días antes de renovar un plan anual.</dd>
+      </dl>
+      <form class="form" data-checkout novalidate>
+        <label class="check"><input type="checkbox" name="start" required> <span>Quiero que el servicio empiece ya y acepto que pierdo el derecho de desistimiento de 14 días una vez empezado.</span></label>
+        <p class="field-msg" data-msg="start"></p>
+        <button class="btn btn-primary btn-block" type="submit">Ir al pago seguro con Paddle</button>
+        <p class="form-msg" data-form-msg role="status"></p>
+      </form>
+      <p class="muted small">El plan se activa cuando nuestro servidor recibe el webhook firmado de Paddle, no por lo que diga el navegador.</p>
+    </div>
+  </section>
+</div>
+
+<!-- ================= PANEL ================= -->
+<div data-view="/app" hidden>
+  <section class="dash">
+    <div class="wrap">
+      <div class="dash-head">
+        <div>
+          <p class="eyebrow mono">Panel · datos de demostración</p>
+          <h1>Tus monitores</h1>
+        </div>
+        <label class="plan-sim">Simular plan
+          <select data-plan-sim>
+            <option value="free">Gratis</option>
+            <option value="freelancer">Freelancer</option>
+            <option value="agencia" selected>Agencia</option>
+          </select>
+        </label>
+      </div>
+      <p class="notice" data-unverified hidden>Verifica tu email para activar monitores. <button class="link-btn" type="button" data-action="verify">Reenviar enlace</button></p>
+
+      <div class="stats">
+        <div><span class="mono muted">Uptime 30 días</span><b data-stat-uptime>—</b></div>
+        <div><span class="mono muted">Monitores</span><b data-stat-count>—</b></div>
+        <div><span class="mono muted">Incidencias abiertas</span><b data-stat-down>—</b></div>
+        <div><span class="mono muted">Próximo vencimiento</span><b>SSL · Hotel Brisa · 6 días</b></div>
+      </div>
+
+      <div class="dash-grid">
+        <div class="panel">
+          <h2 class="h3">Monitores</h2>
+          <table class="table">
+            <thead><tr><th scope="col">Servicio</th><th scope="col">Cliente</th><th scope="col">Últimos 90 días</th><th scope="col">Resp.</th><th scope="col"><span class="sr">Acciones</span></th></tr></thead>
+            <tbody data-monitors></tbody>
+          </table>
+        </div>
+
+        <div class="side-col">
+          <form class="panel form" data-add-monitor novalidate>
+            <h2 class="h3">Añadir monitor</h2>
+            <label for="m-name">Nombre</label>
+            <input type="text" id="m-name" name="name" maxlength="60" required placeholder="Tienda online">
+            <p class="field-msg" data-msg="name"></p>
+            <label for="m-url">URL</label>
+            <input type="text" id="m-url" name="url" class="mono" required placeholder="https://cliente.com" spellcheck="false" autocomplete="off">
+            <p class="field-msg" data-msg="url"></p>
+            <label for="m-client">Cliente</label>
+            <input type="text" id="m-client" name="client" maxlength="60" placeholder="Clínica Ortiz">
+            <label for="m-int">Intervalo</label>
+            <select id="m-int" name="interval" data-intervals></select>
+            <p class="field-msg" data-msg="interval"></p>
+            <button class="btn btn-primary btn-block" type="submit">Añadir monitor</button>
+            <p class="form-msg" data-form-msg role="status"></p>
+            <p class="hint" data-limits></p>
+          </form>
+
+          <form class="panel form" data-webhook novalidate>
+            <h2 class="h3">Webhook de avisos</h2>
+            <label for="w-url">URL del webhook</label>
+            <input type="text" id="w-url" name="url" class="mono" placeholder="https://hooks.tuagencia.com/latido" spellcheck="false">
+            <p class="field-msg" data-msg="url"></p>
+            <button class="btn btn-ghost btn-block" type="submit">Guardar webhook</button>
+            <pre class="code mono" data-webhook-out hidden></pre>
+          </form>
+        </div>
+      </div>
+
+      <div class="panel" id="cuenta">
+        <h2 class="h3">Cuenta y seguridad</h2>
+        <div class="acct">
+          <div>
+            <h3 class="h4">Verificación en dos pasos</h3>
+            <p class="muted small">Con una app como Google Authenticator o 1Password.</p>
+            <button class="btn btn-ghost btn-sm" type="button" data-action="2fa">Activar 2FA</button>
+            <p class="small" data-2fa-out role="status"></p>
+          </div>
+          <div>
+            <h3 class="h4">Suscripción</h3>
+            <p class="muted small" data-sub-line>Plan Agencia · renueva el 1 de diciembre.</p>
+            <button class="btn btn-ghost btn-sm" type="button" data-action="cancel">Cancelar suscripción</button>
+            <p class="small" data-cancel-out role="status"></p>
+          </div>
+          <div>
+            <h3 class="h4">Tus datos</h3>
+            <p class="muted small">Descarga todo lo que guardamos de ti, o borra la cuenta.</p>
+            <button class="btn btn-ghost btn-sm" type="button" data-action="export">Exportar datos (JSON)</button>
+            <button class="btn btn-danger btn-sm" type="button" data-action="delete">Borrar cuenta</button>
+            <p class="small" data-data-out role="status"></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ================= PÁGINA DE ESTADO PÚBLICA ================= -->
+<div data-view="/estado" hidden>
+  <section class="status">
+    <div class="wrap narrow">
+      <div class="status-brand">
+        <span class="client-logo" aria-hidden="true">CO</span>
+        <div><h1 class="h4 status-name">Clínica Ortiz</h1><span class="muted small">Estado de los servicios</span></div>
+      </div>
+      <div class="status-banner is-degraded">
+        <b>Incidencia en la reserva de citas</b>
+        <span>Estamos renovando el certificado de seguridad. La web principal funciona con normalidad.</span>
+      </div>
+      <ul class="status-list" data-status-list></ul>
+      <h2 class="h3">Incidencias recientes</h2>
+      <ol class="timeline">
+        <li><time class="mono">Hoy 09:16</time><b>Reserva de citas no disponible</b><span>Detectado. Tu agencia ya está trabajando en ello.</span></li>
+        <li><time class="mono">12 oct · 03:40</time><b>Mantenimiento programado</b><span>Actualización de la web. 25 minutos. Sin incidencias.</span></li>
+      </ol>
+      <p class="muted small center">Página de estado gestionada por tu agencia · <a href="#/">Hecho con Latido</a></p>
+    </div>
+  </section>
+</div>
+
+<!-- ================= LEGAL ================= -->
+<div data-view="/terminos" hidden>
+  <section class="legal"><div class="wrap narrow">
+    <h1>Términos de uso</h1>
+    <p class="notice">Borrador orientativo. Revísalo con un abogado de tu país antes de cobrar a clientes.</p>
+    <h2 class="h3">1. El servicio</h2><p>Latido comprueba periódicamente la disponibilidad de URLs que el usuario registra y le avisa de los cambios de estado. El servicio está dirigido a mayores de 18 años y a empresas o profesionales.</p>
+    <h2 class="h3">2. Uso permitido y prohibido</h2><p>Solo puedes monitorizar sitios propios o para los que tengas permiso de su titular. Está prohibido usar Latido para sondear redes internas, saturar, escanear o atacar sitios de terceros, o para eludir los límites del plan. Podemos suspender sin aviso las cuentas que lo incumplan.</p>
+    <h2 class="h3">3. Planes, pagos y cancelación</h2><p>Los planes de pago se renuevan automáticamente cada mes o cada año. Paddle actúa como revendedor (Merchant of Record) y emite las facturas con los impuestos aplicables. Puedes cancelar en cualquier momento desde tu cuenta; conservas el plan hasta el fin del periodo pagado. Avisamos por email 7 días antes de renovar un plan anual.</p>
+    <h2 class="h3">4. Desistimiento</h2><p>Si eres consumidor en la UE tienes 14 días para desistir, salvo que hayas pedido expresamente que el servicio empiece antes y aceptado perder ese derecho.</p>
+    <h2 class="h3">5. Disponibilidad y limitación de responsabilidad</h2><p>Hacemos lo razonable para que las alertas lleguen a tiempo, pero no garantizamos que nunca fallen o se retrasen. No respondemos por pérdidas derivadas de una alerta fallida o tardía. Nuestra responsabilidad total se limita a lo que nos hayas pagado en los 12 meses anteriores.</p>
+    <h2 class="h3">6. SLA</h2><p>El plan Agencia incluye un objetivo de disponibilidad del panel y de las comprobaciones del 99,9 % mensual. Si no se cumple, compensamos con crédito proporcional en la siguiente factura, nunca en dinero.</p>
+    <h2 class="h3">7. Ley aplicable</h2><p>[Ley y tribunales del país donde registres el negocio.]</p>
+  </div></section>
+</div>
+
+<div data-view="/privacidad" hidden>
+  <section class="legal"><div class="wrap narrow">
+    <h1>Política de privacidad</h1>
+    <p class="notice">Borrador orientativo según RGPD, LGPD, LFPDPPP, Ley 1581, Ley 25.326 y CCPA. Revísalo con un profesional.</p>
+    <h2 class="h3">Qué datos guardamos</h2><p>Email, nombre o agencia, hash de la contraseña (Argon2id), IP y navegador de los inicios de sesión, URLs monitorizadas con sus resultados (código de estado y tiempo, nunca el contenido), números de teléfono verificados para SMS y el estado de tu suscripción. No guardamos datos de tarjeta: los gestiona Paddle.</p>
+    <h2 class="h3">Para qué</h2><p>Prestar el servicio, enviarte alertas y facturas, proteger tu cuenta y, solo si lo aceptas, enviarte novedades.</p>
+    <h2 class="h3">Cuánto tiempo</h2><p>Resultados de comprobaciones: el historial de tu plan (30 días a 13 meses). Registros de seguridad: 12 meses. Facturas: lo que exija la ley fiscal. Al borrar la cuenta eliminamos el resto en 30 días.</p>
+    <h2 class="h3">Con quién los compartimos</h2><p>Proveedores con contrato de tratamiento (DPA): hosting en la UE, Paddle (pagos), proveedor de email y de SMS, Cloudflare (seguridad). Nunca los vendemos.</p>
+    <h2 class="h3">Tus derechos</h2><p>Acceder, corregir, exportar y borrar tus datos desde Ajustes o escribiendo a privacidad@latido.example. Respondemos en menos de un mes. Si hay una brecha que te afecte, te avisamos y lo notificamos a la autoridad en 72 horas.</p>
+    <h2 class="h3">Clientes empresa</h2><p>Tenemos un DPA listo para agencias que monitorizan sistemas de terceros. Pídelo a privacidad@latido.example.</p>
+  </div></section>
+</div>
+
+<div data-view="/cookies" hidden>
+  <section class="legal"><div class="wrap narrow">
+    <h1>Cookies</h1>
+    <p>Este prototipo no usa cookies ni analítica. Guarda la sesión de demostración en sessionStorage del navegador. Carga fuentes de Google Fonts y consulta Have I Been Pwned al registrar una contraseña, enviando solo los primeros cinco caracteres de su hash SHA-1.</p>
+  </div></section>
+</div>
+
+<div data-view="/aviso-legal" hidden>
+  <section class="legal"><div class="wrap narrow">
+    <h1>Aviso legal</h1>
+    <p>Titular: [nombre o razón social]. Identificación fiscal: [NIF]. Domicilio: [dirección]. Contacto: hola@latido.example.</p>
+    <p class="notice">Completa estos datos cuando registres la actividad. Son obligatorios en España y la UE.</p>
+  </div></section>
+</div>
+
+<div data-view="404" hidden>
+  <section class="auth"><div class="auth-card"><h1>Esta página no existe</h1><a class="btn btn-primary" href="#/">Volver al inicio</a></div></section>
+</div>
+
+</main>
+
+<footer class="footer">
+  <div class="wrap footer-row">
+    <div>
+      <a class="brand" href="#/"><svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="6"/><path d="M4 17h6l3-8 5 15 3-7h7"/></svg><span>Latido</span></a>
+      <p class="muted small">Monitor de uptime para agencias web.</p>
+    </div>
+    <nav aria-label="Legal" class="footer-links">
+      <a href="#/terminos">Términos</a>
+      <a href="#/privacidad">Privacidad</a>
+      <a href="#/cookies">Cookies</a>
+      <a href="#/aviso-legal">Aviso legal</a>
+      <a href="#/estado">Página de estado</a>
+    </nav>
+  </div>
+</footer>
+
+<div class="toast" role="status" aria-live="polite" data-toast hidden></div>
+</body>
+</html>

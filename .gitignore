@@ -1,0 +1,22 @@
+# Notas privadas del proyecto (rutas locales y documentos personales)
+CLAUDE.md
+
+# Carpetas temporales de herramientas de diseño y pruebas
+.review-chrome/
+.playwright-mcp/
+.taste-skill/
+.impeccable/
+shots/
+
+# Sistema y editores
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+
+# Secretos (para cuando exista el servidor)
+.env
+.env.*
+!.env.example
+node_modules/
