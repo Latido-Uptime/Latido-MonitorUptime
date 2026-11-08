@@ -311,3 +311,4 @@ input[aria-invalid="true"] { border-color: var(--down); }
 .roadmap { margin-top: 32px; padding: 20px 24px; border: 1px dashed var(--line); border-radius: 6px; }
 .roadmap h3 { margin-bottom: .4em; }
 .roadmap p { margin: 0; }
+.btn.is-soon, .btn.is-soon:hover { cursor: default; transform: none; opacity: .55; }

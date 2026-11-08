@@ -9,6 +9,7 @@ window.LATIDO_CONFIG = Object.freeze({
     : '0x4AAAAAAF4oZeqEclN8vpNC',
   // Paddle Billing. El token de cliente es público; las claves secretas viven solo en Supabase.
   paddle: {
+    enabled: false,         // true cuando la cuenta real de Paddle esté aprobada (RUC pendiente)
     environment: 'sandbox', // 'production' cuando Paddle apruebe la cuenta real
     clientToken: 'test_cd459f3dc7755043b320280382b', // test_… (Developer tools → Authentication → Client-side tokens)
     prices: {

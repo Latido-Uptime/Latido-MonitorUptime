@@ -328,6 +328,7 @@ function renderCheckout(params) {
 }
 let paddleReady = false;
 function initPaddle() {
+  if (!CFG.paddle.enabled) return false;
   if (paddleReady || !window.Paddle || !CFG.paddle.clientToken) return paddleReady;
   if (CFG.paddle.environment === 'sandbox') window.Paddle.Environment.set('sandbox');
   window.Paddle.Initialize({
@@ -467,7 +468,7 @@ function renderDash() {
     : subscription.scheduled_cancel ? `Plan ${plan.name} · cancelado: sigue activo hasta el ${until}.`
     : subscription.status === 'past_due' ? `Plan ${plan.name} · no pudimos cobrar: actualiza tu tarjeta.`
     : `Plan ${plan.name} · se renueva el ${until}.`;
-  $('[data-sub-upgrade]').hidden = !!paid;
+  $('[data-sub-upgrade]').hidden = !!paid || !CFG.paddle.enabled;
   $$('[data-sub-paid]').forEach(b => { b.hidden = !paid; });
   $('[data-action="cancel-sub"]').hidden = !paid || subscription.scheduled_cancel;
   $('[data-stat-count]').textContent = monitors.length;
@@ -624,6 +625,7 @@ function route() {
     location.replace('#/login'); return;
   }
   if (path === '/verifica' && !pendingEmail) { location.replace('#/registro'); return; }
+  if (path === '/checkout' && !CFG.paddle.enabled) { location.replace('#/#precios'); toast('Los planes de pago llegarán pronto. Por ahora puedes usar el plan Gratis.'); return; }
   if (path === '/checkout' && (!session || mfaNeeded)) { try { sessionStorage.setItem('latido-next', location.hash); } catch { /* sin almacenamiento */ } location.replace('#/login'); return; }
   const views = $$('[data-view]');
   const view = views.find(v => v.dataset.view === path) || views.find(v => v.dataset.view === '404');
@@ -677,6 +679,12 @@ async function waitForPlan() {
 }
 
 // ---------- Arranque ----------
+// Pagos desactivados: los planes de pago se muestran como "Próximamente" (el servidor tampoco da planes)
+if (!CFG.paddle.enabled) $$('[data-plan-link]').forEach(a => {
+  const soon = document.createElement('span');
+  soon.className = a.className + ' is-soon'; soon.textContent = 'Próximamente'; soon.setAttribute('aria-disabled', 'true');
+  a.replaceWith(soon);
+});
 renderHero();
 sb.auth.onAuthStateChange((event, s) => {
   session = s;

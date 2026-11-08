@@ -152,6 +152,12 @@ const apply = async (user, status, price, at, extra = {}) => {
 };
 const planOf = async u => (await db.query('select plan from public.profiles where id = $1', [u])).rows[0].plan;
 
+// Con los pagos desactivados ningún precio da un plan; para probar la lógica, los añadimos como si fueran de producción
+assert.strictEqual((await db.query('select count(*)::int as n from public.paddle_prices')).rows[0].n, 0);
+assert.strictEqual(await apply(E, 'active', AGENCIA_MES, '2026-11-08T08:00:00Z', { sub: 'sub_prueba' }), 'free');
+await db.query(`insert into public.paddle_prices (price_id, plan, cycle) values ($1, 'agencia', 'mensual'), ($2, 'freelancer', 'mensual')`, [AGENCIA_MES, FREELANCER_MES]);
+await db.query('delete from public.subscriptions');
+
 // Nadie más que el servidor puede aplicar un pago (ni el usuario, ni sin sesión)
 await fails(E, `select public.apply_subscription('${E}', 's', 'c', 'active', '${AGENCIA_MES}', null, false, now())`, /permission denied/);
 await fails(E, `select * from public.paddle_ids_for('${E}')`, /permission denied/);
