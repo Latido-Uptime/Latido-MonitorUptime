@@ -304,3 +304,4 @@ input[aria-invalid="true"] { border-color: var(--down); }
 .mini, .af-bar b, .svc b { overflow-wrap: anywhere; }
 .status-list .row { flex-wrap: wrap; }
 .nav-links.is-open { overflow-y: auto; }
+.qr { display: block; background: #fff; border: 1px solid var(--line); border-radius: var(--r); margin: 8px 0; }

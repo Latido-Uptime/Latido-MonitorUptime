@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https://api.pwnedpasswords.com; form-action 'self'; base-uri 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https://api.pwnedpasswords.com https://udsyguzfvtlpersuwbjl.supabase.co; form-action 'self'; base-uri 'none'; object-src 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="page-type" content="software">
 <meta name="site-kind" content="software">
@@ -18,6 +18,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
 <link rel="stylesheet" href="styles.css">
+<script src="vendor/supabase-2.119.0.js" defer></script>
+<script src="config.js" defer></script>
 <script src="ssrf-guard.js" defer></script>
 <script src="app.js" defer></script>
 </head>
@@ -47,7 +49,7 @@
 </header>
 
 <main id="main" tabindex="-1">
-<p class="notice wrap">Prototipo de demostración. No crea cuentas reales, monitoriza webs, envía avisos ni cobra pagos. CAPTCHA, 2FA y verificación de email son simulados. Usa solo datos ficticios. Los planes, integraciones y textos legales describen un servicio propuesto.</p>
+<p class="notice wrap">Beta privada. Las cuentas, la verificación de email y el 2FA son reales. Las comprobaciones de tus monitores, las alertas y los pagos se activan en las próximas fases. Los textos legales son un borrador.</p>
 
 <!-- ================= LANDING ================= -->
 <div data-view="/">
@@ -253,8 +255,6 @@
     <div class="auth-card">
       <h1>Crea tu cuenta</h1>
       <p class="muted">Gratis, sin tarjeta. Verificaremos tu email antes de activar los monitores.</p>
-      <button class="btn btn-ghost btn-block" type="button" data-oauth>Continuar con Google</button>
-      <p class="or"><span>o con tu email</span></p>
       <form class="form" data-register novalidate>
         <label for="r-name">Nombre o agencia</label>
         <input type="text" id="r-name" name="name" autocomplete="organization" maxlength="80" required>
@@ -268,11 +268,6 @@
         <input id="r-pass" name="password" type="password" autocomplete="new-password" minlength="8" maxlength="128" required aria-describedby="r-pass-hint">
         <p class="hint" id="r-pass-hint">Mínimo 8 caracteres. La comprobamos contra filtraciones conocidas sin enviarla (Have I Been Pwned).</p>
         <p class="field-msg" data-msg="password" aria-live="polite"></p>
-
-        <div class="captcha" data-captcha>
-          <span class="captcha-box" aria-hidden="true"></span>
-          <span>Verificación anti-bots (Cloudflare Turnstile)</span>
-        </div>
 
         <label class="check"><input type="checkbox" name="terms" required> <span>Tengo 18 años o más y acepto los <a href="#/terminos">términos de uso</a> y la <a href="#/privacidad">política de privacidad</a>.</span></label>
         <p class="field-msg" data-msg="terms"></p>
@@ -291,8 +286,9 @@
     <div class="auth-card">
       <p class="eyebrow mono"><span class="dot dot-up" aria-hidden="true"></span> Paso 2 de 2</p>
       <h1>Revisa tu email</h1>
-      <p>Te enviamos un enlace a <b data-verify-email></b>. Caduca en 60 minutos. Hasta que lo abras, puedes ver el panel pero no activar monitores.</p>
-      <a class="btn btn-primary btn-block" href="#/app" data-verify-demo>Simular clic en el enlace</a>
+      <p>Te enviamos un enlace a <b data-verify-email></b>. Ábrelo para activar tu cuenta y entrar. Si no lo ves en unos minutos, revisa la carpeta de spam.</p>
+      <button class="btn btn-ghost btn-block" type="button" data-action="resend">Reenviar el email</button>
+      <p class="small" data-resend-out role="status"></p>
     </div>
   </section>
 </div>
@@ -302,18 +298,11 @@
   <section class="auth">
     <div class="auth-card">
       <h1>Inicia sesión</h1>
-      <p class="muted small">Cuenta de prueba: <code>demo@latido.example</code> · <code>latido-demo-2026</code></p>
-      <button class="btn btn-ghost btn-block" type="button" data-oauth>Continuar con Google</button>
-      <p class="or"><span>o con tu email</span></p>
       <form class="form" data-login novalidate>
         <label for="l-email">Email</label>
         <input id="l-email" name="email" type="email" autocomplete="username" required>
         <label for="l-pass">Contraseña</label>
         <input id="l-pass" name="password" type="password" autocomplete="current-password" required>
-        <div class="captcha" data-captcha hidden>
-          <span class="captcha-box" aria-hidden="true"></span>
-          <span>Varios intentos fallidos: confirma que eres humano (Turnstile)</span>
-        </div>
         <div data-totp hidden>
           <label for="l-totp">Código de tu app de autenticación</label>
           <input type="text" id="l-totp" name="totp" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}">
@@ -337,6 +326,22 @@
         <p class="form-msg" data-form-msg role="status"></p>
       </form>
       <p class="muted small center"><a href="#/login">Volver a iniciar sesión</a></p>
+    </div>
+  </section>
+</div>
+
+<div data-view="/nueva-clave" hidden>
+  <section class="auth">
+    <div class="auth-card">
+      <h1>Elige una contraseña nueva</h1>
+      <form class="form" data-new-password novalidate>
+        <label for="n-pass">Contraseña nueva</label>
+        <input id="n-pass" name="password" type="password" autocomplete="new-password" minlength="8" maxlength="128" required aria-describedby="n-pass-hint">
+        <p class="hint" id="n-pass-hint">Mínimo 8 caracteres. La comprobamos contra filtraciones conocidas sin enviarla.</p>
+        <p class="field-msg" data-msg="password"></p>
+        <button class="btn btn-primary btn-block" type="submit">Guardar contraseña</button>
+        <p class="form-msg" data-form-msg role="status"></p>
+      </form>
     </div>
   </section>
 </div>
@@ -369,31 +374,24 @@
     <div class="wrap">
       <div class="dash-head">
         <div>
-          <p class="eyebrow mono">Panel · datos de demostración</p>
+          <p class="eyebrow mono" data-account-line>Panel</p>
           <h1>Tus monitores</h1>
         </div>
-        <label class="plan-sim">Simular plan
-          <select data-plan-sim>
-            <option value="free">Gratis</option>
-            <option value="freelancer">Freelancer</option>
-            <option value="agencia" selected>Agencia</option>
-          </select>
-        </label>
+        <p class="plan-sim" data-plan-line></p>
       </div>
-      <p class="notice" data-unverified hidden>Verifica tu email para activar monitores. <button class="link-btn" type="button" data-action="verify">Reenviar enlace</button></p>
 
       <div class="stats">
         <div><span class="mono muted">Uptime 30 días</span><b data-stat-uptime>—</b></div>
         <div><span class="mono muted">Monitores</span><b data-stat-count>—</b></div>
         <div><span class="mono muted">Incidencias abiertas</span><b data-stat-down>—</b></div>
-        <div><span class="mono muted">Próximo vencimiento</span><b>SSL · Hotel Brisa · 6 días</b></div>
+        <div><span class="mono muted">Próximo vencimiento</span><b>—</b></div>
       </div>
 
       <div class="dash-grid">
         <div class="panel">
           <h2 class="h3">Monitores</h2>
           <table class="table">
-            <thead><tr><th scope="col">Servicio</th><th scope="col">Cliente</th><th scope="col">Últimos 90 días</th><th scope="col">Resp.</th><th scope="col"><span class="sr">Acciones</span></th></tr></thead>
+            <thead><tr><th scope="col">Servicio</th><th scope="col">Cliente</th><th scope="col">Historial</th><th scope="col">Resp.</th><th scope="col"><span class="sr">Acciones</span></th></tr></thead>
             <tbody data-monitors></tbody>
           </table>
         </div>
@@ -419,6 +417,7 @@
 
           <form class="panel form" data-webhook novalidate>
             <h2 class="h3">Webhook de avisos</h2>
+            <p class="hint">Vista previa: los webhooks se activan en la fase de alertas.</p>
             <label for="w-url">URL del webhook</label>
             <input type="text" id="w-url" name="url" class="mono" placeholder="https://hooks.tuagencia.com/latido" spellcheck="false">
             <p class="field-msg" data-msg="url"></p>
@@ -435,12 +434,20 @@
             <h3 class="h4">Verificación en dos pasos</h3>
             <p class="muted small">Con una app como Google Authenticator o 1Password.</p>
             <button class="btn btn-ghost btn-sm" type="button" data-action="2fa">Activar 2FA</button>
+            <button class="btn btn-ghost btn-sm" type="button" data-action="2fa-off" hidden>Desactivar 2FA</button>
+            <form class="form" data-2fa-form hidden novalidate>
+              <span data-2fa-qr></span>
+              <p class="small">¿No puedes escanear? Escribe esta clave: <code data-2fa-secret></code></p>
+              <label for="t-code">Código de 6 dígitos de tu app</label>
+              <input type="text" id="t-code" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" required>
+              <button class="btn btn-primary btn-sm" type="submit">Confirmar y activar</button>
+            </form>
             <p class="small" data-2fa-out role="status"></p>
           </div>
           <div>
             <h3 class="h4">Suscripción</h3>
-            <p class="muted small" data-sub-line>Plan Agencia · renueva el 1 de diciembre.</p>
-            <button class="btn btn-ghost btn-sm" type="button" data-action="cancel">Cancelar suscripción</button>
+            <p class="muted small" data-sub-line>Plan Gratis · sin cobros.</p>
+            <p class="hint">Los planes de pago y su cancelación en un clic llegan con la fase de pagos.</p>
             <p class="small" data-cancel-out role="status"></p>
           </div>
           <div>
