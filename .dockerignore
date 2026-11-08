@@ -10,3 +10,6 @@ shots
 CLAUDE.md
 og.png
 *.png
+node_modules
+supabase
+package*.json

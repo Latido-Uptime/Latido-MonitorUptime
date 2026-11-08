@@ -1,0 +1,10 @@
+{
+  "name": "latido",
+  "private": true,
+  "scripts": {
+    "test": "node test-ssrf.cjs && node monitor/test.mjs && node supabase/test.mjs"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.15"
+  }
+}
