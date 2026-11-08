@@ -145,6 +145,29 @@ $$('[data-cycle]').forEach(b => b.addEventListener('click', () => {
   $$('[data-plan-link]').forEach(a => { a.href = `#/checkout?plan=${a.dataset.planLink}&ciclo=${cycle}`; });
 }));
 
+// ---------- CAPTCHA (Cloudflare Turnstile): un widget por pantalla, token de un solo uso ----------
+const captchas = new Map(); // contenedor -> { id, token }
+const slotOf = scope => $('[data-captcha]', scope.closest('[data-view]') || scope);
+function mountCaptcha(view) {
+  const slot = $('[data-captcha]', view);
+  if (!slot || !window.turnstile) return;
+  const known = captchas.get(slot);
+  if (known) { known.token = ''; window.turnstile.reset(known.id); return; }
+  const entry = { id: null, token: '' };
+  entry.id = window.turnstile.render(slot, {
+    sitekey: CFG.turnstileSiteKey, language: 'es',
+    callback: t => { entry.token = t; },
+    'expired-callback': () => { entry.token = ''; },
+    'error-callback': () => { entry.token = ''; }
+  });
+  captchas.set(slot, entry);
+}
+function captchaToken(scope) { const c = captchas.get(slotOf(scope)); return c ? c.token : ''; }
+function captchaUsed(scope) { const c = captchas.get(slotOf(scope)); if (c) { c.token = ''; window.turnstile.reset(c.id); } }
+const NO_CAPTCHA = 'Completa la verificación anti-bots y vuelve a pulsar el botón.';
+// Turnstile llama a esta función al cargar (api.js?onload=latidoTurnstileReady)
+window.latidoTurnstileReady = () => { const v = $$('[data-view]').find(x => !x.hidden); if (v) mountCaptcha(v); };
+
 // ---------- Contraseñas filtradas (Have I Been Pwned, k-anonimidad) ----------
 async function sha1Hex(text) {
   const buf = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(text));
@@ -185,11 +208,14 @@ $('[data-register]').addEventListener('submit', async e => {
   const problem = await passwordProblem(pass);
   if (problem) { busy(f, false); formMsg(f, ''); setMsg(f, 'password', problem); f.elements.password.focus(); return; }
 
+  const captchaTokenValue = captchaToken(f);
+  if (!captchaTokenValue) { busy(f, false); formMsg(f, NO_CAPTCHA); return; }
   formMsg(f, 'Creando tu cuenta…', true);
   const { error } = await sb.auth.signUp({
     email, password: pass,
-    options: { emailRedirectTo: redirectTo('app'), data: { name, marketing: f.elements.marketing.checked } }
+    options: { emailRedirectTo: redirectTo('app'), captchaToken: captchaTokenValue, data: { name, marketing: f.elements.marketing.checked } }
   });
+  captchaUsed(f);
   busy(f, false);
   if (error) { formMsg(f, authError(error)); return; }
   // Supabase responde igual exista o no la cuenta: no revelamos qué emails están registrados
@@ -226,8 +252,11 @@ $('[data-login]').addEventListener('submit', async e => {
     (!EMAIL_RE.test(email) ? f.elements.email : f.elements.password).focus();
     return;
   }
+  const loginToken = captchaToken(f);
+  if (!loginToken) { formMsg(f, NO_CAPTCHA); return; }
   busy(f, true);
-  const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+  const { error } = await sb.auth.signInWithPassword({ email, password: pass, options: { captchaToken: loginToken } });
+  captchaUsed(f);
   if (error) {
     busy(f, false);
     // Mismo mensaje exista o no la cuenta
@@ -257,8 +286,11 @@ $('[data-reset]').addEventListener('submit', async e => {
   const email = f.elements.email.value.trim().toLowerCase();
   if (!EMAIL_RE.test(email)) { formMsg(f, 'Escribe un email válido.'); f.elements.email.setAttribute('aria-invalid', 'true'); f.elements.email.focus(); return; }
   f.elements.email.setAttribute('aria-invalid', 'false');
+  const resetToken = captchaToken(f);
+  if (!resetToken) { formMsg(f, NO_CAPTCHA); return; }
   busy(f, true);
-  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: redirectTo('nueva-clave') });
+  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: redirectTo('nueva-clave'), captchaToken: resetToken });
+  captchaUsed(f);
   busy(f, false);
   if (error && error.status === 429) { formMsg(f, authError(error)); return; }
   f.reset();
@@ -459,7 +491,11 @@ const actions = {
   async resend() {
     const out = $('[data-resend-out]');
     if (!pendingEmail) { out.textContent = 'Vuelve a registrarte o inicia sesión para reenviar el email.'; return; }
-    const { error } = await sb.auth.resend({ type: 'signup', email: pendingEmail, options: { emailRedirectTo: redirectTo('app') } });
+    const view = out.closest('[data-view]');
+    const resendToken = captchaToken(view);
+    if (!resendToken) { out.textContent = NO_CAPTCHA; return; }
+    const { error } = await sb.auth.resend({ type: 'signup', email: pendingEmail, options: { emailRedirectTo: redirectTo('app'), captchaToken: resendToken } });
+    captchaUsed(view);
     out.textContent = error ? authError(error) : 'Email reenviado. Revisa también la carpeta de spam.';
   },
   async '2fa'() {
@@ -548,6 +584,7 @@ function route() {
   const views = $$('[data-view]');
   const view = views.find(v => v.dataset.view === path) || views.find(v => v.dataset.view === '404');
   views.forEach(v => { v.hidden = v !== view; });
+  mountCaptcha(view);
   if (path === '/checkout') renderCheckout(new URLSearchParams(query));
   if (path === '/app') loadDash();
   if (path === '/verifica') $('[data-verify-email]').textContent = pendingEmail;

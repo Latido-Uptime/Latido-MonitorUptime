@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https://api.pwnedpasswords.com https://udsyguzfvtlpersuwbjl.supabase.co; form-action 'self'; base-uri 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https://api.pwnedpasswords.com https://udsyguzfvtlpersuwbjl.supabase.co; form-action 'self'; base-uri 'none'; object-src 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="page-type" content="software">
 <meta name="site-kind" content="software">
@@ -22,6 +22,7 @@
 <script src="config.js" defer></script>
 <script src="ssrf-guard.js" defer></script>
 <script src="app.js" defer></script>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&amp;onload=latidoTurnstileReady" defer></script>
 </head>
 <body>
 <!-- Plan: software · palette cool-grey-cobalt (el gris frío de una consola + un azul de enlace: herramienta técnica, tranquila) · Geist + Geist Mono · radius sharp -->
@@ -273,6 +274,7 @@
         <p class="field-msg" data-msg="terms"></p>
         <label class="check"><input type="checkbox" name="marketing"> <span>Quiero recibir novedades de producto por email (opcional, puedes darte de baja cuando quieras).</span></label>
 
+        <div class="captcha-slot" data-captcha></div>
         <button class="btn btn-primary btn-block" type="submit">Crear cuenta</button>
         <p class="form-msg" data-form-msg role="status"></p>
       </form>
@@ -287,6 +289,7 @@
       <p class="eyebrow mono"><span class="dot dot-up" aria-hidden="true"></span> Paso 2 de 2</p>
       <h1>Revisa tu email</h1>
       <p>Te enviamos un enlace a <b data-verify-email></b>. Ábrelo para activar tu cuenta y entrar. Si no lo ves en unos minutos, revisa la carpeta de spam.</p>
+      <div class="captcha-slot" data-captcha></div>
       <button class="btn btn-ghost btn-block" type="button" data-action="resend">Reenviar el email</button>
       <p class="small" data-resend-out role="status"></p>
     </div>
@@ -307,6 +310,7 @@
           <label for="l-totp">Código de tu app de autenticación</label>
           <input type="text" id="l-totp" name="totp" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}">
         </div>
+        <div class="captcha-slot" data-captcha></div>
         <button class="btn btn-primary btn-block" type="submit">Entrar</button>
         <p class="form-msg" data-form-msg role="status"></p>
       </form>
@@ -322,6 +326,7 @@
       <form class="form" data-reset novalidate>
         <label for="p-email">Email de tu cuenta</label>
         <input id="p-email" name="email" type="email" autocomplete="email" required>
+        <div class="captcha-slot" data-captcha></div>
         <button class="btn btn-primary btn-block" type="submit">Enviar enlace</button>
         <p class="form-msg" data-form-msg role="status"></p>
       </form>
