@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Error 500 (Internal Server Error): qué significa y qué revisar · Latido</title>
+<meta name="description" content="Qué significa el error 500 Internal Server Error, sus causas más habituales (plugins, .htaccess, PHP, base de datos) y qué revisar primero para recuperar la web.">
+<link rel="canonical" href="https://latidouptime.com/errores/error-500">
+<meta property="og:title" content="Error 500 (Internal Server Error): qué significa y qué revisar">
+<meta property="og:description" content="Qué significa el error 500 Internal Server Error, sus causas más habituales (plugins, .htaccess, PHP, base de datos) y qué revisar primero para recuperar la web.">
+<meta property="og:image" content="https://latidouptime.com/og.png">
+<meta name="theme-color" content="#eef0f3">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230b0c0e'/%3E%3Cpath d='M4 17h6l3-8 5 15 3-7h7' fill='none' stroke='%2334d27b' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;display=swap">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<!-- Generado por scripts/paginas-errores.mjs: edita el contenido allí -->
+<a class="skip" href="#main">Saltar al contenido</a>
+<header class="nav">
+  <div class="wrap nav-row">
+    <a class="brand" href="/" aria-label="Latido, inicio"><svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="6"/><path d="M4 17h6l3-8 5 15 3-7h7"/></svg><span>Latido</span></a>
+    <a class="btn btn-primary btn-sm nav-cta" href="/#/registro">Crear cuenta gratis</a>
+  </div>
+</header>
+<main id="main">
+<section class="legal"><div class="wrap narrow">
+  <p class="eyebrow mono"><a href="/errores/">Errores web explicados</a></p>
+  <h1>Error 500: el servidor falló al generar la página</h1>
+  <p class="lede">El servidor recibió la petición, pero algo falló al generar la página. Es un error genérico del lado del servidor: no depende del navegador ni de la conexión del visitante, y suele aparecer justo después de un cambio.</p>
+  <h2 class="h3">Causas más habituales</h2>
+  <ul>
+    <li>Un error en el código tras una actualización: un plugin, un tema o un despliegue nuevo.</li>
+    <li>Una regla mal escrita en el archivo <code>.htaccess</code>.</li>
+    <li>PHP sin memoria suficiente (<code>memory_limit</code>) o una versión de PHP que el sitio no soporta.</li>
+    <li>La base de datos no responde o sus credenciales cambiaron.</li>
+    <li>Detrás de Cloudflare, los errores del 520 al 526 indican un problema entre Cloudflare y tu servidor: caído, sin aceptar conexiones o con un certificado no válido.</li>
+  </ul>
+  <h2 class="h3">Qué revisar primero</h2>
+  <ol>
+    <li>Abre el registro de errores del servidor (<code>error_log</code> o los logs del panel del hosting): casi siempre dice qué archivo y qué línea fallan.</li>
+    <li>Deshaz lo último que cambió: la actualización de un plugin o un tema, o el último despliegue.</li>
+    <li>Renombra temporalmente <code>.htaccess</code> para descartar una regla rota.</li>
+    <li>Revisa el límite de memoria y la versión de PHP en el panel del hosting.</li>
+    <li>En WordPress, activa <code>WP_DEBUG_LOG</code> y desactiva los plugins para encontrar el culpable.</li>
+  </ol>
+  <h2 class="h3">Cómo lo detecta Latido</h2>
+  <p>Latido comprueba tu web cada pocos minutos. Si falla, repite la comprobación 5 segundos después y, si sigue fallando, te avisa por email con el motivo en español: «El servidor respondió 500». Cuando vuelve, te avisa otra vez con cuánto tiempo estuvo caída, y en tu panel queda la incidencia con un mensaje listo para reenviar a tu cliente.</p>
+</div></section>
+<section class="close">
+  <div class="wrap close-row">
+    <h2>Entérate antes que tu cliente la próxima vez.</h2>
+    <a class="btn btn-primary" href="/#/registro">Crear cuenta gratis</a>
+  </div>
+</section>
+</main>
+<footer class="footer">
+  <div class="wrap footer-row">
+    <div>
+      <a class="brand" href="/"><svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="6"/><path d="M4 17h6l3-8 5 15 3-7h7"/></svg><span>Latido</span></a>
+      <p class="muted small">Monitor de uptime para agencias web.</p>
+    </div>
+    <nav aria-label="Legal" class="footer-links">
+      <a href="/#/terminos">Términos</a>
+      <a href="/#/privacidad">Privacidad</a>
+      <a href="/#/cookies">Cookies</a>
+      <a href="/#/reembolsos">Reembolsos</a>
+      <a href="/#/aviso-legal">Aviso legal</a>
+    </nav>
+  </div>
+</footer>
+</body>
+</html>

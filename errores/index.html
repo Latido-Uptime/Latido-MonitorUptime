@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Errores web explicados: qué significa cada uno y qué revisar · Latido</title>
+<meta name="description" content="Qué significan los errores que tiran una web (500, 502, 503, 504, 403, certificado SSL, DNS, conexión rechazada, tiempo de espera y redirecciones) y qué revisar primero.">
+<link rel="canonical" href="https://latidouptime.com/errores/">
+<meta property="og:title" content="Errores web explicados: qué significa cada uno y qué revisar">
+<meta property="og:description" content="Qué significan los errores que tiran una web (500, 502, 503, 504, 403, certificado SSL, DNS, conexión rechazada, tiempo de espera y redirecciones) y qué revisar primero.">
+<meta property="og:image" content="https://latidouptime.com/og.png">
+<meta name="theme-color" content="#eef0f3">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230b0c0e'/%3E%3Cpath d='M4 17h6l3-8 5 15 3-7h7' fill='none' stroke='%2334d27b' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;display=swap">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<!-- Generado por scripts/paginas-errores.mjs: edita el contenido allí -->
+<a class="skip" href="#main">Saltar al contenido</a>
+<header class="nav">
+  <div class="wrap nav-row">
+    <a class="brand" href="/" aria-label="Latido, inicio"><svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="6"/><path d="M4 17h6l3-8 5 15 3-7h7"/></svg><span>Latido</span></a>
+    <a class="btn btn-primary btn-sm nav-cta" href="/#/registro">Crear cuenta gratis</a>
+  </div>
+</header>
+<main id="main">
+<section class="legal"><div class="wrap narrow">
+  <h1>Errores web explicados</h1>
+  <p class="lede">Qué significa cada error que puede tirar una web y qué revisar primero. Son los mismos fallos que Latido detecta y explica en sus avisos.</p>
+  <ul class="error-index">
+    <li><a href="/errores/error-500">Error 500: el servidor falló al generar la página</a><br><span class="muted small">Qué significa el error 500 Internal Server Error, sus causas más habituales (plugins, .htaccess, PHP, base de datos) y qué revisar primero para recuperar la web.</span></li>
+    <li><a href="/errores/error-502">Error 502 Bad Gateway: el intermediario recibió una respuesta inválida</a><br><span class="muted small">Qué significa el error 502 Bad Gateway, por qué aparece con Nginx, PHP-FPM o Cloudflare y qué revisar primero para que la web vuelva.</span></li>
+    <li><a href="/errores/error-503">Error 503: la web no está disponible temporalmente</a><br><span class="muted small">Qué significa el error 503 Service Unavailable, sus causas (sobrecarga, mantenimiento, límites del hosting, protección anti-bots) y qué revisar primero.</span></li>
+    <li><a href="/errores/error-504">Error 504 Gateway Timeout: el servidor tardó demasiado en responder</a><br><span class="muted small">Qué significa el error 504 Gateway Timeout, por qué el servidor de origen no responde a tiempo y qué revisar primero: consultas lentas, carga y tiempos de espera.</span></li>
+    <li><a href="/errores/error-403">Error 403 Forbidden: el servidor se niega a mostrar la página</a><br><span class="muted small">Qué significa el error 403 Forbidden, cuándo es un bloqueo del firewall o de la protección anti-bots y no una caída, y qué revisar primero.</span></li>
+    <li><a href="/errores/certificado-ssl">Certificado SSL caducado o no válido</a><br><span class="muted small">Por qué el navegador muestra «La conexión no es privada» (NET::ERR_CERT_DATE_INVALID), por qué falla la renovación automática del certificado SSL y qué revisar primero.</span></li>
+    <li><a href="/errores/dominio-no-resuelve">El dominio no resuelve: para internet, la web no existe</a><br><span class="muted small">Qué significa DNS_PROBE_FINISHED_NXDOMAIN o «el dominio no resuelve»: dominio caducado, DNS mal configurado o nameservers cambiados. Qué revisar primero.</span></li>
+    <li><a href="/errores/conexion-rechazada">Conexión rechazada: el servidor no acepta conexiones</a><br><span class="muted small">Qué significa ERR_CONNECTION_REFUSED o una conexión rechazada: el servidor web está parado, un firewall bloquea el puerto o el DNS apunta a un servidor antiguo.</span></li>
+    <li><a href="/errores/sin-respuesta">La web no responde: se agotó el tiempo de espera</a><br><span class="muted small">Qué significa ERR_CONNECTION_TIMED_OUT o una web que no responde: servidor apagado, saturado o un firewall que descarta las conexiones. Qué revisar primero.</span></li>
+    <li><a href="/errores/demasiadas-redirecciones">Demasiadas redirecciones: la web entra en un bucle</a><br><span class="muted small">Por qué aparece ERR_TOO_MANY_REDIRECTS: el SSL «Flexible» de Cloudflare, reglas de redirección que se contradicen o las URLs de WordPress. Qué revisar primero.</span></li>
+  </ul>
+</div></section>
+<section class="close">
+  <div class="wrap close-row">
+    <h2>Entérate antes que tu cliente la próxima vez.</h2>
+    <a class="btn btn-primary" href="/#/registro">Crear cuenta gratis</a>
+  </div>
+</section>
+</main>
+<footer class="footer">
+  <div class="wrap footer-row">
+    <div>
+      <a class="brand" href="/"><svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="6"/><path d="M4 17h6l3-8 5 15 3-7h7"/></svg><span>Latido</span></a>
+      <p class="muted small">Monitor de uptime para agencias web.</p>
+    </div>
+    <nav aria-label="Legal" class="footer-links">
+      <a href="/#/terminos">Términos</a>
+      <a href="/#/privacidad">Privacidad</a>
+      <a href="/#/cookies">Cookies</a>
+      <a href="/#/reembolsos">Reembolsos</a>
+      <a href="/#/aviso-legal">Aviso legal</a>
+    </nav>
+  </div>
+</footer>
+</body>
+</html>

@@ -10,8 +10,11 @@
 // ronda falló, nuestra red no responde o los avisos no salen; si deja de llegar, Healthchecks te avisa a ti.
 import postgres from 'postgres';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
 import { check } from './check.mjs';
 import { sendEmail } from './email.mjs';
+
+const { errorPage } = createRequire(import.meta.url)('../errores.js');
 
 const TICK_MS = 30_000;
 const SEND_EVERY_MS = 5_000; // cada cuánto se revisa la cola de avisos
@@ -80,10 +83,13 @@ export function alertEmail(a) {
     subject: `✅ Latido ya vigila ${name}`,
     text: `${name} (${url}) respondió bien en su primera comprobación (${a.status} en ${a.ms} ms).\n\nAsí te llegarán los avisos: te escribiremos a este email si deja de responder, cuando vuelva y antes de que caduque su certificado SSL. Si este correo llegó a spam, márcalo como «No es spam» para no perderte ninguno.\n\n— Latido · https://latidouptime.com`
   };
-  if (a.alert === 'down') return {
-    subject: `🔴 Caída: ${name}`,
-    text: `${name} (${url}) no responde desde ${at}.\n\nMotivo: ${oneLine(a.error)}\n\nTe avisaremos cuando vuelva.\n\n— Latido · https://latidouptime.com`
-  };
+  if (a.alert === 'down') {
+    const page = errorPage(a.status, a.error);
+    return {
+      subject: `🔴 Caída: ${name}`,
+      text: `${name} (${url}) no responde desde ${at}.\n\nMotivo: ${oneLine(a.error)}${page ? `\nQué significa y qué revisar: https://latidouptime.com/errores/${page}` : ''}\n\nTe avisaremos cuando vuelva.\n\n— Latido · https://latidouptime.com`
+    };
+  }
   return {
     subject: `🟢 Recuperado: ${name}`,
     text: `${name} (${url}) vuelve a funcionar desde ${at} (respuesta ${a.status} en ${a.ms} ms).\n\nEstuvo caído unos ${a.down_minutes} min.\n\n— Latido · https://latidouptime.com`

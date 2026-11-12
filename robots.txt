@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://latidouptime.com/sitemap.xml

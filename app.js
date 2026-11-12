@@ -519,6 +519,12 @@ function incidentCard(i, m) {
   times.textContent = `Detectada ${when(i.started_at)}` + (i.last_ok_at ? ` · última comprobación correcta ${when(i.last_ok_at)}` : '')
     + (i.ended_at ? ` · resuelta ${when(i.ended_at)}` : '');
   const tip = document.createElement('p'); tip.className = 'small'; tip.textContent = `Qué revisar primero (causa probable): ${hint(i)}.`;
+  const slug = Errores.errorPage(i.status, i.error);
+  if (slug) {
+    const more = document.createElement('a'); more.href = `/errores/${slug}`; more.target = '_blank'; more.rel = 'noopener';
+    more.textContent = 'Qué significa este error';
+    tip.append(' ', more);
+  }
   const actions = document.createElement('div'); actions.className = 'incident-actions';
   const copy = document.createElement('button'); copy.type = 'button'; copy.className = 'btn btn-ghost btn-sm';
   copy.textContent = 'Copiar mensaje para el cliente';

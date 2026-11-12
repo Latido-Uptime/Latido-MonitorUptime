@@ -44,6 +44,7 @@ main:focus:not(:focus-visible) { outline: none; }
 .nav-links > a:not(.btn):hover, .link-btn:hover { background-size: 100% 1px; }
 .nav-sep { width: 1px; height: 20px; background: var(--line); }
 .nav-toggle { display: none; margin-left: auto; }
+.nav-cta { margin-left: auto; } /* páginas de /errores: sin menú, solo el botón */
 .link-btn { border: 0; padding: 0; font: inherit; cursor: pointer; color: var(--accent); background-color: transparent; }
 
 /* Buttons */
@@ -269,6 +270,8 @@ input[aria-invalid="true"] { border-color: var(--down); }
 .legal h1 { margin-bottom: 24px; }
 .legal h2 { margin-top: 28px; }
 .legal p { color: #2c3038; }
+.legal li { margin-bottom: 8px; color: #2c3038; }
+.error-index li { margin-bottom: 16px; }
 
 /* Footer */
 .footer { border-top: 1px solid var(--line); padding: 40px 0; }

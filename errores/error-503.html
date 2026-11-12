@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Error 503 Service Unavailable: qué significa y qué revisar · Latido</title>
+<meta name="description" content="Qué significa el error 503 Service Unavailable, sus causas (sobrecarga, mantenimiento, límites del hosting, protección anti-bots) y qué revisar primero.">
+<link rel="canonical" href="https://latidouptime.com/errores/error-503">
+<meta property="og:title" content="Error 503 Service Unavailable: qué significa y qué revisar">
+<meta property="og:description" content="Qué significa el error 503 Service Unavailable, sus causas (sobrecarga, mantenimiento, límites del hosting, protección anti-bots) y qué revisar primero.">
+<meta property="og:image" content="https://latidouptime.com/og.png">
+<meta name="theme-color" content="#eef0f3">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230b0c0e'/%3E%3Cpath d='M4 17h6l3-8 5 15 3-7h7' fill='none' stroke='%2334d27b' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;display=swap">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<!-- Generado por scripts/paginas-errores.mjs: edita el contenido allí -->
+<a class="skip" href="#main">Saltar al contenido</a>
+<header class="nav">
+  <div class="wrap nav-row">
+    <a class="brand" href="/" aria-label="Latido, inicio"><svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="6"/><path d="M4 17h6l3-8 5 15 3-7h7"/></svg><span>Latido</span></a>
+    <a class="btn btn-primary btn-sm nav-cta" href="/#/registro">Crear cuenta gratis</a>
+  </div>
+</header>
+<main id="main">
+<section class="legal"><div class="wrap narrow">
+  <p class="eyebrow mono"><a href="/errores/">Errores web explicados</a></p>
+  <h1>Error 503: la web no está disponible temporalmente</h1>
+  <p class="lede">El servidor está activo, pero en este momento no puede atender la petición. Suele ser temporal: está sobrecargado, en mantenimiento o limitado por el hosting.</p>
+  <h2 class="h3">Causas más habituales</h2>
+  <ul>
+    <li>Un pico de tráfico o los recursos del plan agotados: CPU, memoria o número de procesos.</li>
+    <li>Modo mantenimiento: en WordPress, una actualización que se corta deja un archivo <code>.maintenance</code> que mantiene la web en 503.</li>
+    <li>El hosting limitó o suspendió temporalmente la cuenta por consumo.</li>
+    <li>Una protección anti-bots que responde 503 a las visitas automáticas, como un desafío de Cloudflare.</li>
+  </ul>
+  <h2 class="h3">Qué revisar primero</h2>
+  <ol>
+    <li>Mira el panel del hosting: uso de recursos y avisos de límite o de suspensión.</li>
+    <li>En WordPress, busca un archivo <code>.maintenance</code> en la raíz y bórralo si la actualización ya terminó.</li>
+    <li>Revisa los registros del servidor a la hora de la caída.</li>
+    <li>Si la web carga en tu navegador pero el monitor ve un 503, revisa la protección anti-bots: puede estar bloqueando las comprobaciones.</li>
+  </ol>
+  <h2 class="h3">Cómo lo detecta Latido</h2>
+  <p>Latido comprueba tu web cada pocos minutos. Si falla, repite la comprobación 5 segundos después y, si sigue fallando, te avisa por email con el motivo en español: «El servidor respondió 503». Cuando vuelve, te avisa otra vez con cuánto tiempo estuvo caída, y en tu panel queda la incidencia con un mensaje listo para reenviar a tu cliente.</p>
+</div></section>
+<section class="close">
+  <div class="wrap close-row">
+    <h2>Entérate antes que tu cliente la próxima vez.</h2>
+    <a class="btn btn-primary" href="/#/registro">Crear cuenta gratis</a>
+  </div>
+</section>
+</main>
+<footer class="footer">
+  <div class="wrap footer-row">
+    <div>
+      <a class="brand" href="/"><svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="6"/><path d="M4 17h6l3-8 5 15 3-7h7"/></svg><span>Latido</span></a>
+      <p class="muted small">Monitor de uptime para agencias web.</p>
+    </div>
+    <nav aria-label="Legal" class="footer-links">
+      <a href="/#/terminos">Términos</a>
+      <a href="/#/privacidad">Privacidad</a>
+      <a href="/#/cookies">Cookies</a>
+      <a href="/#/reembolsos">Reembolsos</a>
+      <a href="/#/aviso-legal">Aviso legal</a>
+    </nav>
+  </div>
+</footer>
+</body>
+</html>

@@ -5,6 +5,9 @@ import { PGLiteSocketServer } from '@electric-sql/pglite-socket';
 import { check } from './check.mjs';
 import { runBatch, sendDue, alertEmail, alertLimiter } from './run.mjs';
 import { createDb } from '../supabase/stub.mjs';
+import { existsSync } from 'node:fs';
+import { createRequire } from 'node:module';
+const { errorPage } = createRequire(import.meta.url)('../errores.js');
 
 // ---------- Anti-SSRF: nunca se conecta a direcciones internas, ni directas ni vía DNS ----------
 for (const u of ['http://127.0.0.1', 'http://localhost:5432', 'http://169.254.169.254/latest/meta-data/', 'file:///etc/passwd']) {
@@ -21,8 +24,21 @@ else { assert.strictEqual(live.ok, true, JSON.stringify(live)); assert.ok(live.m
 
 // ---------- Textos de aviso: sin saltos de línea inyectados en el asunto, con la hora del suceso ----------
 const at = new Date('2026-11-08T14:00:00Z');
-const down = alertEmail({ alert: 'down', monitor_name: 'Tienda\r\nBcc: x@y.com', monitor_url: 'https://t.com', error: 'El servidor respondió 503', event_at: at });
+const down = alertEmail({ alert: 'down', monitor_name: 'Tienda\r\nBcc: x@y.com', monitor_url: 'https://t.com', status: 503, error: 'El servidor respondió 503', event_at: at });
 assert.ok(!/[\r\n]/.test(down.subject)); assert.match(down.text, /503/);
+assert.match(down.text, /Qué significa y qué revisar: https:\/\/latidouptime\.com\/errores\/error-503\n/);
+
+// ---------- Cada fallo enlaza a su página de /errores, y la página existe ----------
+const fallos = [[500, 'El servidor respondió 500', 'error-500'], [520, 'El servidor respondió 520', 'error-500'], [502, '', 'error-502'],
+  [503, '', 'error-503'], [504, '', 'error-504'], [403, '', 'error-403'], [429, '', 'error-403'],
+  [null, 'El certificado SSL ha caducado', 'certificado-ssl'], [null, 'El certificado SSL no corresponde a este dominio', 'certificado-ssl'],
+  [null, 'El dominio no resuelve.', 'dominio-no-resuelve'], [null, 'Conexión rechazada por el servidor', 'conexion-rechazada'],
+  [null, 'El servidor cortó la conexión', 'conexion-rechazada'], [null, 'Sin respuesta en 10 s', 'sin-respuesta'],
+  [null, 'Más de 5 redirecciones', 'demasiadas-redirecciones'], [404, 'El servidor respondió 404', null]];
+for (const [status, error, slug] of fallos) {
+  assert.strictEqual(errorPage(status, error), slug, `${status} ${error}`);
+  if (slug) assert.ok(existsSync(new URL(`../errores/${slug}.html`, import.meta.url)), `falta la página ${slug}`);
+}
 assert.ok(down.text.includes(at.toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'short', timeZone: process.env.TIME_ZONE || 'America/Guayaquil' })));
 assert.match(alertEmail({ alert: 'up', monitor_name: 'T', monitor_url: 'https://t.com', down_minutes: 7, status: 200, ms: 90, event_at: at }).text, /7 min/);
 const sslMail = alertEmail({ alert: 'ssl', monitor_name: 'T', monitor_url: 'https://t.com', event_at: at, ssl_expires_at: new Date(at.getTime() + 864e5) });

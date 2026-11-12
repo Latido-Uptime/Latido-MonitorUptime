@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demasiadas redirecciones (ERR_TOO_MANY_REDIRECTS): qué significa y cómo arreglarlo · Latido</title>
+<meta name="description" content="Por qué aparece ERR_TOO_MANY_REDIRECTS: el SSL «Flexible» de Cloudflare, reglas de redirección que se contradicen o las URLs de WordPress. Qué revisar primero.">
+<link rel="canonical" href="https://latidouptime.com/errores/demasiadas-redirecciones">
+<meta property="og:title" content="Demasiadas redirecciones (ERR_TOO_MANY_REDIRECTS): qué significa y cómo arreglarlo">
+<meta property="og:description" content="Por qué aparece ERR_TOO_MANY_REDIRECTS: el SSL «Flexible» de Cloudflare, reglas de redirección que se contradicen o las URLs de WordPress. Qué revisar primero.">
+<meta property="og:image" content="https://latidouptime.com/og.png">
+<meta name="theme-color" content="#eef0f3">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230b0c0e'/%3E%3Cpath d='M4 17h6l3-8 5 15 3-7h7' fill='none' stroke='%2334d27b' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;display=swap">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<!-- Generado por scripts/paginas-errores.mjs: edita el contenido allí -->
+<a class="skip" href="#main">Saltar al contenido</a>
+<header class="nav">
+  <div class="wrap nav-row">
+    <a class="brand" href="/" aria-label="Latido, inicio"><svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="6"/><path d="M4 17h6l3-8 5 15 3-7h7"/></svg><span>Latido</span></a>
+    <a class="btn btn-primary btn-sm nav-cta" href="/#/registro">Crear cuenta gratis</a>
+  </div>
+</header>
+<main id="main">
+<section class="legal"><div class="wrap narrow">
+  <p class="eyebrow mono"><a href="/errores/">Errores web explicados</a></p>
+  <h1>Demasiadas redirecciones: la web entra en un bucle</h1>
+  <p class="lede">La web redirige a otra dirección que vuelve a redirigir, en bucle, hasta que el navegador se rinde con <code>ERR_TOO_MANY_REDIRECTS</code>. Latido sigue como mucho 5 redirecciones antes de dar la web por caída.</p>
+  <h2 class="h3">Causas más habituales</h2>
+  <ul>
+    <li>Cloudflare en modo SSL «Flexible» con un servidor que fuerza https: Cloudflare pide por http, el servidor redirige a https, y así sin fin.</li>
+    <li>Reglas de redirección que se contradicen en <code>.htaccess</code> o en Nginx, por ejemplo con <code>www</code> y sin <code>www</code>.</li>
+    <li>En WordPress, la dirección del sitio no coincide con la redirección del servidor.</li>
+    <li>Dos plugins de redirección o de SSL que se pisan.</li>
+  </ul>
+  <h2 class="h3">Qué revisar primero</h2>
+  <ol>
+    <li>Si usas Cloudflare, pon el modo SSL en «Full» o «Full (strict)», siempre que tu servidor tenga certificado.</li>
+    <li>Revisa las reglas de redirección del servidor y deja una sola para cada caso.</li>
+    <li>En WordPress, comprueba las dos direcciones de Ajustes → Generales.</li>
+    <li>Desactiva los plugins de redirección o de SSL para encontrar cuál provoca el bucle.</li>
+  </ol>
+  <h2 class="h3">Cómo lo detecta Latido</h2>
+  <p>Latido comprueba tu web cada pocos minutos. Si falla, repite la comprobación 5 segundos después y, si sigue fallando, te avisa por email con el motivo en español: «Más de 5 redirecciones». Cuando vuelve, te avisa otra vez con cuánto tiempo estuvo caída, y en tu panel queda la incidencia con un mensaje listo para reenviar a tu cliente.</p>
+</div></section>
+<section class="close">
+  <div class="wrap close-row">
+    <h2>Entérate antes que tu cliente la próxima vez.</h2>
+    <a class="btn btn-primary" href="/#/registro">Crear cuenta gratis</a>
+  </div>
+</section>
+</main>
+<footer class="footer">
+  <div class="wrap footer-row">
+    <div>
+      <a class="brand" href="/"><svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="6"/><path d="M4 17h6l3-8 5 15 3-7h7"/></svg><span>Latido</span></a>
+      <p class="muted small">Monitor de uptime para agencias web.</p>
+    </div>
+    <nav aria-label="Legal" class="footer-links">
+      <a href="/#/terminos">Términos</a>
+      <a href="/#/privacidad">Privacidad</a>
+      <a href="/#/cookies">Cookies</a>
+      <a href="/#/reembolsos">Reembolsos</a>
+      <a href="/#/aviso-legal">Aviso legal</a>
+    </nav>
+  </div>
+</footer>
+</body>
+</html>

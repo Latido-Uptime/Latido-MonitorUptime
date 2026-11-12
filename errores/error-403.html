@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Error 403 Forbidden: qué significa y por qué puede bloquear a tu monitor · Latido</title>
+<meta name="description" content="Qué significa el error 403 Forbidden, cuándo es un bloqueo del firewall o de la protección anti-bots y no una caída, y qué revisar primero.">
+<link rel="canonical" href="https://latidouptime.com/errores/error-403">
+<meta property="og:title" content="Error 403 Forbidden: qué significa y por qué puede bloquear a tu monitor">
+<meta property="og:description" content="Qué significa el error 403 Forbidden, cuándo es un bloqueo del firewall o de la protección anti-bots y no una caída, y qué revisar primero.">
+<meta property="og:image" content="https://latidouptime.com/og.png">
+<meta name="theme-color" content="#eef0f3">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230b0c0e'/%3E%3Cpath d='M4 17h6l3-8 5 15 3-7h7' fill='none' stroke='%2334d27b' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;display=swap">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<!-- Generado por scripts/paginas-errores.mjs: edita el contenido allí -->
+<a class="skip" href="#main">Saltar al contenido</a>
+<header class="nav">
+  <div class="wrap nav-row">
+    <a class="brand" href="/" aria-label="Latido, inicio"><svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="6"/><path d="M4 17h6l3-8 5 15 3-7h7"/></svg><span>Latido</span></a>
+    <a class="btn btn-primary btn-sm nav-cta" href="/#/registro">Crear cuenta gratis</a>
+  </div>
+</header>
+<main id="main">
+<section class="legal"><div class="wrap narrow">
+  <p class="eyebrow mono"><a href="/errores/">Errores web explicados</a></p>
+  <h1>Error 403 Forbidden: el servidor se niega a mostrar la página</h1>
+  <p class="lede">El servidor entendió la petición, pero no quiere servirla. Para un monitor de uptime hay un caso frecuente: la web funciona para tus visitantes y lo que hay es un firewall o una protección anti-bots que bloquea las comprobaciones automáticas.</p>
+  <h2 class="h3">Causas más habituales</h2>
+  <ul>
+    <li>Un firewall o una protección anti-bots (Cloudflare, Wordfence, ModSecurity, Imunify360) que bloquea robots o IPs de centros de datos.</li>
+    <li>Permisos de archivos o de carpetas incorrectos.</li>
+    <li>Una regla en <code>.htaccess</code> o en la configuración del servidor que deniega el acceso.</li>
+    <li>Restricciones por país o por IP.</li>
+    <li>Si el código es 401, la página pide usuario y contraseña; si es 429, el servidor está limitando las peticiones.</li>
+  </ul>
+  <h2 class="h3">Qué revisar primero</h2>
+  <ol>
+    <li>Abre la web desde tu navegador: si carga, revisa el firewall y permite las comprobaciones de Latido, que se identifican como <code>LatidoMonitor</code>.</li>
+    <li>Revisa los permisos: lo habitual es 644 para archivos y 755 para carpetas.</li>
+    <li>Busca reglas que denieguen el acceso o restricciones de IP en <code>.htaccess</code> y en la configuración del servidor.</li>
+    <li>Si el 403 empezó al activar un plugin de seguridad, revisa su registro de bloqueos.</li>
+  </ol>
+  <h2 class="h3">Cómo lo detecta Latido</h2>
+  <p>Latido comprueba tu web cada pocos minutos. Si falla, repite la comprobación 5 segundos después y, si sigue fallando, te avisa por email con el motivo en español: «El servidor respondió 403». Cuando vuelve, te avisa otra vez con cuánto tiempo estuvo caída, y en tu panel queda la incidencia con un mensaje listo para reenviar a tu cliente.</p>
+</div></section>
+<section class="close">
+  <div class="wrap close-row">
+    <h2>Entérate antes que tu cliente la próxima vez.</h2>
+    <a class="btn btn-primary" href="/#/registro">Crear cuenta gratis</a>
+  </div>
+</section>
+</main>
+<footer class="footer">
+  <div class="wrap footer-row">
+    <div>
+      <a class="brand" href="/"><svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="6"/><path d="M4 17h6l3-8 5 15 3-7h7"/></svg><span>Latido</span></a>
+      <p class="muted small">Monitor de uptime para agencias web.</p>
+    </div>
+    <nav aria-label="Legal" class="footer-links">
+      <a href="/#/terminos">Términos</a>
+      <a href="/#/privacidad">Privacidad</a>
+      <a href="/#/cookies">Cookies</a>
+      <a href="/#/reembolsos">Reembolsos</a>
+      <a href="/#/aviso-legal">Aviso legal</a>
+    </nav>
+  </div>
+</footer>
+</body>
+</html>
