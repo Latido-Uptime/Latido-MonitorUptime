@@ -22,6 +22,7 @@
 <script src="config.js" defer></script>
 <script src="ssrf-guard.js" defer></script>
 <script src="errores.js" defer></script>
+<script src="i18n.js" defer></script>
 <script src="https://cdn.paddle.com/paddle/v2/paddle.js" defer></script>
 <script src="app.js" defer></script>
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&amp;onload=latidoTurnstileReady" defer></script>
@@ -41,6 +42,14 @@
       <a href="#/#funciones">Funciones</a>
       <a href="#/seguridad">Seguridad</a>
       <a href="#/#precios">Precios</a>
+      <label class="sr" for="lang">Idioma</label>
+      <select id="lang" class="lang-select" data-lang translate="no">
+        <option value="es">Español</option>
+        <option value="en">English</option>
+        <option value="zh">中文</option>
+        <option value="fr">Français</option>
+        <option value="de">Deutsch</option>
+      </select>
       <span class="nav-sep" aria-hidden="true"></span>
       <a href="#/login" data-guest>Iniciar sesión</a>
       <a class="btn btn-primary btn-sm" href="#/registro" data-guest>Crear cuenta gratis</a>
@@ -77,10 +86,10 @@
           <p class="mono af-label">Clientes</p>
           <ul>
             <li class="is-on">Todos <i>14</i></li>
-            <li>Clínica Ortiz <i class="t-down">1</i></li>
-            <li>Ferretería Lumen</li>
-            <li>Hotel Brisa</li>
-            <li>Ruda Café</li>
+            <li translate="no">Clínica Ortiz <i class="t-down">1</i></li>
+            <li translate="no">Ferretería Lumen</li>
+            <li translate="no">Hotel Brisa</li>
+            <li translate="no">Ruda Café</li>
           </ul>
         </aside>
         <div class="af-main">
@@ -88,7 +97,7 @@
             <li class="incident">
               <div class="incident-head">
                 <span class="badge badge-down">Caída · 4 min</span>
-                <b>clinicaortiz.example</b>
+                <b translate="no">clinicaortiz.example</b>
               </div>
               <p class="diag"><span class="mono">Motivo</span> El certificado SSL ha caducado.</p>
               <div class="incident-actions">
@@ -216,14 +225,14 @@
         <a class="btn btn-primary" href="#/checkout?plan=agencia" data-plan-link="agencia">Elegir Agencia</a>
       </article>
     </div>
-    <p class="muted small measure">Todos los planes incluyen 2FA, CAPTCHA y exportar o borrar tus datos. Cancela desde tu panel en un clic. Pago y facturas con Paddle, que calcula el IVA de tu país. <a href="#/reembolsos">Reembolso en 14 días</a>.</p>
+    <p class="muted small measure" data-i18n="html">Todos los planes incluyen 2FA, CAPTCHA y exportar o borrar tus datos. Cancela desde tu panel en un clic. Pago y facturas con Paddle, que calcula el IVA de tu país. <a href="#/reembolsos">Reembolso en 14 días</a>.</p>
   </div>
 </section>
 
 <section id="faq">
   <div class="wrap"><div class="measure">
     <h2>Preguntas antes de empezar</h2>
-    <details><summary>¿Puedo monitorizar webs que no son mías?</summary><p>Solo las de tus clientes o las que tengas permiso para vigilar. Los <a href="#/terminos">términos</a> prohíben usar Latido para saturar o sondear sitios ajenos, y los límites por dominio lo frenan.</p></details>
+    <details><summary>¿Puedo monitorizar webs que no son mías?</summary><p data-i18n="html">Solo las de tus clientes o las que tengas permiso para vigilar. Los <a href="#/terminos">términos</a> prohíben usar Latido para saturar o sondear sitios ajenos, y los límites por dominio lo frenan.</p></details>
     <details><summary>¿Qué pasa si una alerta llega tarde?</summary><p>Antes de avisar repetimos la comprobación unos segundos después, para no darte falsas alarmas. Aun así ningún sistema es infalible: la responsabilidad está limitada como explican los términos.</p></details>
     <details><summary>¿Puedo cambiar de plan?</summary><p>Sí. Cancela el plan actual desde tu panel y, cuando termine el periodo pagado, contrata el nuevo. Si bajas a un plan con menos monitores, los que sobren quedan en pausa (no se borran) y se reactivan si vuelves a subir.</p></details>
     <details><summary>¿Cómo cancelo?</summary><p>En tu panel: Cuenta y seguridad → Suscripción → Cancelar suscripción. Sin llamadas ni emails. Sigues con tu plan hasta el final del periodo pagado.</p></details>
@@ -247,12 +256,12 @@
       <h1>Un monitor que no se puede usar como arma</h1>
       <p class="lede">Un servicio que visita URLs por encargo es un blanco fácil. Así cerramos cada puerta:</p>
       <ul class="checks">
-        <li><b>Filtro anti-SSRF.</b> Antes de cada comprobación y tras cada redirección resolvemos el DNS y bloqueamos redes privadas, loopback y metadatos de la nube.</li>
-        <li><b>Solo http y https,</b> máximo 5 redirecciones y 10 s de espera. Guardamos el código de estado, el tiempo y la caducidad del certificado; nunca descargamos el contenido de la página.</li>
-        <li><b>Comprobador aislado:</b> corre en su propio servidor y en la base de datos solo puede pedir qué toca comprobar, guardar el resultado y recoger los avisos que debe enviar. No puede leer las cuentas ni el resto de datos.</li>
-        <li><b>Límites anti-abuso:</b> intervalo mínimo por plan, monitores por cuenta y por dominio entre todas las cuentas.</li>
-        <li><b>Login probado</b> con 2FA por app, contraseñas cifradas con bcrypt y comprobadas contra filtraciones conocidas.</li>
-        <li><b>Pagos con Paddle:</b> nunca vemos tu tarjeta.</li>
+        <li data-i18n="html"><b>Filtro anti-SSRF.</b> Antes de cada comprobación y tras cada redirección resolvemos el DNS y bloqueamos redes privadas, loopback y metadatos de la nube.</li>
+        <li data-i18n="html"><b>Solo http y https,</b> máximo 5 redirecciones y 10 s de espera. Guardamos el código de estado, el tiempo y la caducidad del certificado; nunca descargamos el contenido de la página.</li>
+        <li data-i18n="html"><b>Comprobador aislado:</b> corre en su propio servidor y en la base de datos solo puede pedir qué toca comprobar, guardar el resultado y recoger los avisos que debe enviar. No puede leer las cuentas ni el resto de datos.</li>
+        <li data-i18n="html"><b>Límites anti-abuso:</b> intervalo mínimo por plan, monitores por cuenta y por dominio entre todas las cuentas.</li>
+        <li data-i18n="html"><b>Login probado</b> con 2FA por app, contraseñas cifradas con bcrypt y comprobadas contra filtraciones conocidas.</li>
+        <li data-i18n="html"><b>Pagos con Paddle:</b> nunca vemos tu tarjeta.</li>
       </ul>
     </div>
     <div class="try">
@@ -263,7 +272,7 @@
         <p class="field-msg" data-msg="url" aria-live="polite"></p>
         <button class="btn btn-primary" type="submit">Comprobar URL</button>
       </form>
-      <p class="muted small">Prueba también <code>http://localhost:5432</code>, <code>http://2130706433</code> o <code>http://[::1]</code>.</p>
+      <p class="muted small" data-i18n="html">Prueba también <code>http://localhost:5432</code>, <code>http://2130706433</code> o <code>http://[::1]</code>.</p>
     </div>
   </div>
 </section>
@@ -289,7 +298,7 @@
         <p class="hint" id="r-pass-hint">Mínimo 8 caracteres. La comprobamos contra filtraciones conocidas sin enviarla (Have I Been Pwned).</p>
         <p class="field-msg" data-msg="password" aria-live="polite"></p>
 
-        <label class="check"><input type="checkbox" name="terms" required> <span>Tengo 18 años o más y acepto los <a href="#/terminos">términos de uso</a> y la <a href="#/privacidad">política de privacidad</a>.</span></label>
+        <label class="check"><input type="checkbox" name="terms" required> <span data-i18n="html">Tengo 18 años o más y acepto los <a href="#/terminos">términos de uso</a> y la <a href="#/privacidad">política de privacidad</a>.</span></label>
         <p class="field-msg" data-msg="terms"></p>
         <label class="check"><input type="checkbox" name="marketing"> <span>Quiero recibir novedades de producto por email (opcional, puedes darte de baja cuando quieras).</span></label>
 
@@ -307,7 +316,7 @@
     <div class="auth-card">
       <p class="eyebrow mono"><span class="dot dot-up" aria-hidden="true"></span> Paso 2 de 2</p>
       <h1>Revisa tu email</h1>
-      <p>Te enviamos un enlace a <b data-verify-email></b>. Ábrelo para activar tu cuenta y entrar. Si no lo ves en unos minutos, revisa la carpeta de spam.</p>
+      <p data-i18n="html">Te enviamos un enlace a <b data-verify-email></b>. Ábrelo para activar tu cuenta y entrar. Si no lo ves en unos minutos, revisa la carpeta de spam.</p>
       <div class="captcha-slot" data-captcha></div>
       <button class="btn btn-ghost btn-block" type="button" data-action="resend">Reenviar el email</button>
       <p class="small" data-resend-out role="status"></p>
@@ -382,7 +391,7 @@
         <dt>Renovación</dt><dd>Automática. Cancela cuando quieras desde tu panel en un clic; conservas el plan hasta el final del periodo pagado.</dd>
       </dl>
       <form class="form" data-checkout novalidate>
-        <label class="check"><input type="checkbox" name="start" required> <span>Quiero que el servicio empiece ya. Puedo pedir el reembolso en los 14 días siguientes según la <a href="#/reembolsos">política de reembolsos</a>.</span></label>
+        <label class="check"><input type="checkbox" name="start" required> <span data-i18n="html">Quiero que el servicio empiece ya. Puedo pedir el reembolso en los 14 días siguientes según la <a href="#/reembolsos">política de reembolsos</a>.</span></label>
         <p class="field-msg" data-msg="start"></p>
         <button class="btn btn-primary btn-block" type="submit">Ir al pago seguro con Paddle</button>
         <p class="form-msg" data-form-msg role="status"></p>
@@ -493,12 +502,12 @@
   <section class="legal"><div class="wrap narrow">
     <h1>Términos de uso</h1>
     <p class="muted small">Última actualización: 8 de noviembre de 2026.</p>
-    <h2 class="h3">1. Quiénes somos</h2><p>Latido es un servicio de Luis Fernando Saverio Rodriguez, persona natural con domicilio fiscal en Ecuador («Latido», «nosotros»). Contacto: <a href="mailto:luis@latidouptime.com">luis@latidouptime.com</a>.</p>
+    <h2 class="h3">1. Quiénes somos</h2><p data-i18n="html">Latido es un servicio de Luis Fernando Saverio Rodriguez, persona natural con domicilio fiscal en Ecuador («Latido», «nosotros»). Contacto: <a href="mailto:luis@latidouptime.com">luis@latidouptime.com</a>.</p>
     <h2 class="h3">2. El servicio</h2><p>Latido comprueba periódicamente la disponibilidad de las URLs que registras y te avisa por email cuando dejan de responder y cuando vuelven. Está dirigido a mayores de 18 años y a empresas o profesionales.</p>
     <h2 class="h3">3. Uso permitido y prohibido</h2><p>Solo puedes monitorizar sitios propios o para los que tengas permiso de su titular. Está prohibido usar Latido para sondear redes internas, saturar, escanear o atacar sitios de terceros, o para eludir los límites del plan. Podemos suspender o cerrar las cuentas que lo incumplan.</p>
     <h2 class="h3">4. Pagos y revendedor</h2><p>Nuestro proceso de compra lo gestiona nuestro revendedor en línea Paddle.com. Paddle.com es el Merchant of Record de todos nuestros pedidos: cobra el pago, emite la factura con los impuestos aplicables y atiende las consultas de facturación y las devoluciones.</p>
     <h2 class="h3">5. Renovación y cancelación</h2><p>Los planes de pago se renuevan automáticamente cada mes o cada año, según el que elijas, al precio indicado más los impuestos de tu país. Puedes cancelar en cualquier momento desde tu panel (Cuenta y seguridad → Suscripción); no se te volverá a cobrar y conservas el plan hasta el final del periodo pagado. Si tu plan termina, los monitores que superen el límite del plan Gratis quedan en pausa.</p>
-    <h2 class="h3">6. Reembolsos</h2><p>Puedes pedir el reembolso en los 14 días siguientes a cada pago. Los detalles están en la <a href="#/reembolsos">política de reembolsos</a>.</p>
+    <h2 class="h3">6. Reembolsos</h2><p data-i18n="html">Puedes pedir el reembolso en los 14 días siguientes a cada pago. Los detalles están en la <a href="#/reembolsos">política de reembolsos</a>.</p>
     <h2 class="h3">7. Disponibilidad y limitación de responsabilidad</h2><p>Hacemos lo razonable para que las comprobaciones y los avisos funcionen y lleguen a tiempo, pero no garantizamos que nunca fallen o se retrasen. No respondemos por pérdidas derivadas de un aviso fallido o tardío. Nuestra responsabilidad total se limita a lo que nos hayas pagado en los 12 meses anteriores.</p>
     <h2 class="h3">8. Cambios</h2><p>Si cambiamos estos términos de forma importante, te avisaremos por email con al menos 15 días de antelación.</p>
     <h2 class="h3">9. Ley aplicable</h2><p>Estos términos se rigen por las leyes de la República del Ecuador. Cualquier controversia se someterá a los jueces competentes de Ecuador, sin perjuicio de los derechos que te reconozca la ley de tu país como consumidor.</p>
@@ -509,13 +518,13 @@
   <section class="legal"><div class="wrap narrow">
     <h1>Política de privacidad</h1>
     <p class="muted small">Última actualización: 12 de noviembre de 2026.</p>
-    <h2 class="h3">Responsable</h2><p>Luis Fernando Saverio Rodriguez (Latido), Ecuador. Contacto: <a href="mailto:luis@latidouptime.com">luis@latidouptime.com</a>. Tratamos tus datos según la Ley Orgánica de Protección de Datos Personales de Ecuador y, si estás en la Unión Europea, el RGPD.</p>
+    <h2 class="h3">Responsable</h2><p data-i18n="html">Luis Fernando Saverio Rodriguez (Latido), Ecuador. Contacto: <a href="mailto:luis@latidouptime.com">luis@latidouptime.com</a>. Tratamos tus datos según la Ley Orgánica de Protección de Datos Personales de Ecuador y, si estás en la Unión Europea, el RGPD.</p>
     <h2 class="h3">Qué datos guardamos</h2><p>Tu email y nombre o agencia; tu contraseña cifrada con bcrypt (nunca en texto legible); la IP y el navegador de tus inicios de sesión; las URLs que monitorizas y el resultado de cada comprobación (código de estado, tiempo de respuesta, mensaje de error y caducidad del certificado SSL, nunca el contenido de la página); las incidencias de cada caída (motivo y horas); y el estado de tu suscripción. No vemos ni guardamos los datos de tu tarjeta: los gestiona Paddle.</p>
     <h2 class="h3">Para qué</h2><p>Prestarte el servicio, enviarte los avisos de tus monitores y los emails de tu cuenta, proteger tu cuenta frente a accesos indebidos y, solo si lo aceptas, enviarte novedades.</p>
     <h2 class="h3">Cuánto tiempo</h2><p>Cada comprobación, 7 días; las incidencias, 90 días desde que se resuelven. Los datos de tu cuenta, mientras la mantengas. Al borrar la cuenta eliminamos tu perfil, tus monitores, su historial y sus incidencias de inmediato; Paddle conserva las facturas el tiempo que exige la ley fiscal.</p>
     <h2 class="h3">Con quién los compartimos</h2><p>Solo con los proveedores que necesitamos para funcionar: Supabase (base de datos y cuentas), Fly.io (comprobaciones), Cloudflare (web, seguridad, verificación anti-bots y analítica sin cookies), Resend (envío de emails) y Paddle (pagos). Supabase y Fly.io guardan y procesan los datos en Estados Unidos. Nunca vendemos tus datos.</p>
-    <h2 class="h3">Tus derechos</h2><p>Puedes acceder a tus datos, corregirlos, exportarlos y borrarlos desde tu panel (Cuenta y seguridad → Tus datos) o escribiendo a <a href="mailto:luis@latidouptime.com">luis@latidouptime.com</a>. Respondemos en un máximo de 30 días. Si sufriéramos una brecha de seguridad que afecte a tus datos, te avisaremos y lo notificaremos a la autoridad competente en un plazo de 72 horas.</p>
-    <h2 class="h3">Empresas</h2><p>Si necesitas un acuerdo de tratamiento de datos (DPA) porque monitorizas sistemas de tus clientes, escríbenos a <a href="mailto:luis@latidouptime.com">luis@latidouptime.com</a>.</p>
+    <h2 class="h3">Tus derechos</h2><p data-i18n="html">Puedes acceder a tus datos, corregirlos, exportarlos y borrarlos desde tu panel (Cuenta y seguridad → Tus datos) o escribiendo a <a href="mailto:luis@latidouptime.com">luis@latidouptime.com</a>. Respondemos en un máximo de 30 días. Si sufriéramos una brecha de seguridad que afecte a tus datos, te avisaremos y lo notificaremos a la autoridad competente en un plazo de 72 horas.</p>
+    <h2 class="h3">Empresas</h2><p data-i18n="html">Si necesitas un acuerdo de tratamiento de datos (DPA) porque monitorizas sistemas de tus clientes, escríbenos a <a href="mailto:luis@latidouptime.com">luis@latidouptime.com</a>.</p>
   </div></section>
 </div>
 
@@ -523,9 +532,9 @@
   <section class="legal"><div class="wrap narrow">
     <h1>Política de reembolsos</h1>
     <p class="muted small">Última actualización: 8 de noviembre de 2026.</p>
-    <p>Si Latido no te convence, puedes pedir el reembolso completo en los 14 días siguientes a cualquier pago, ya sea la primera compra o una renovación. Escribe a <a href="mailto:luis@latidouptime.com">luis@latidouptime.com</a> desde el email de tu cuenta, o responde al recibo que te envió Paddle. Paddle, nuestro revendedor, devuelve el importe al mismo medio de pago, normalmente en 5 a 10 días hábiles.</p>
+    <p data-i18n="html">Si Latido no te convence, puedes pedir el reembolso completo en los 14 días siguientes a cualquier pago, ya sea la primera compra o una renovación. Escribe a <a href="mailto:luis@latidouptime.com">luis@latidouptime.com</a> desde el email de tu cuenta, o responde al recibo que te envió Paddle. Paddle, nuestro revendedor, devuelve el importe al mismo medio de pago, normalmente en 5 a 10 días hábiles.</p>
     <p>Pasados esos 14 días no hacemos reembolsos parciales del periodo en curso. Puedes cancelar en cualquier momento desde tu panel: no se te volverá a cobrar y conservas el plan hasta el final del periodo pagado.</p>
-    <p>Podemos rechazar reembolsos en caso de abuso evidente, por ejemplo compras y devoluciones repetidas, o cuentas cerradas por incumplir los <a href="#/terminos">términos de uso</a>.</p>
+    <p data-i18n="html">Podemos rechazar reembolsos en caso de abuso evidente, por ejemplo compras y devoluciones repetidas, o cuentas cerradas por incumplir los <a href="#/terminos">términos de uso</a>.</p>
   </div></section>
 </div>
 
@@ -539,7 +548,7 @@
 <div data-view="/aviso-legal" hidden>
   <section class="legal"><div class="wrap narrow">
     <h1>Aviso legal</h1>
-    <p>Titular del sitio y del servicio Latido: Luis Fernando Saverio Rodriguez, persona natural con domicilio fiscal en Ecuador. Contacto: <a href="mailto:luis@latidouptime.com">luis@latidouptime.com</a>.</p>
+    <p data-i18n="html">Titular del sitio y del servicio Latido: Luis Fernando Saverio Rodriguez, persona natural con domicilio fiscal en Ecuador. Contacto: <a href="mailto:luis@latidouptime.com">luis@latidouptime.com</a>.</p>
     <p>Los pagos los gestiona Paddle.com Market Ltd. como revendedor (Merchant of Record).</p>
   </div></section>
 </div>

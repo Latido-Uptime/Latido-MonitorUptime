@@ -14,3 +14,7 @@
   X-Robots-Tag: noindex
 /scripts/*
   X-Robots-Tag: noindex
+/admin*
+  X-Robots-Tag: noindex
+/i18n/*
+  X-Robots-Tag: noindex

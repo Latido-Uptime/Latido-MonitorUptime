@@ -45,6 +45,8 @@ main:focus:not(:focus-visible) { outline: none; }
 .nav-sep { width: 1px; height: 20px; background: var(--line); }
 .nav-toggle { display: none; margin-left: auto; }
 .nav-cta { margin-left: auto; } /* páginas de /errores: sin menú, solo el botón */
+.table-wrap { overflow-x: auto; }
+.lang-select {font: inherit; font-size: .9rem; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: var(--r); padding: 6px 8px; min-height: 36px; width: auto; }
 .link-btn { border: 0; padding: 0; font: inherit; cursor: pointer; color: var(--accent); background-color: transparent; }
 
 /* Buttons */

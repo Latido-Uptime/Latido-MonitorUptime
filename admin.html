@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Administración · Latido</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230b0c0e'/%3E%3Cpath d='M4 17h6l3-8 5 15 3-7h7' fill='none' stroke='%2334d27b' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;display=swap">
+<link rel="stylesheet" href="/styles.css">
+<script src="/vendor/supabase-2.119.0.js" defer></script>
+<script src="/config.js" defer></script>
+<script src="/admin.js" defer></script>
+</head>
+<body>
+<!-- Panel de administración: los datos solo salen de funciones del servidor que exigen ser administrador y 2FA -->
+<header class="nav">
+  <div class="wrap nav-row">
+    <a class="brand" href="/" aria-label="Latido, inicio"><svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="6"/><path d="M4 17h6l3-8 5 15 3-7h7"/></svg><span>Latido</span></a>
+    <span class="muted small">Administración</span>
+    <a class="btn btn-ghost btn-sm nav-cta" href="/#/app">Mi panel</a>
+  </div>
+</header>
+<main id="main">
+<section class="dash">
+  <div class="wrap">
+    <p class="notice" data-admin-msg role="status">Cargando…</p>
+    <div data-admin hidden>
+      <div class="dash-head">
+        <div>
+          <p class="eyebrow mono" data-admin-line>Administración</p>
+          <h1>Quién usa Latido</h1>
+        </div>
+        <button class="btn btn-ghost btn-sm" type="button" data-refresh>Actualizar</button>
+      </div>
+      <div class="stats" data-stats></div>
+      <p class="muted small" data-plans></p>
+
+      <div class="panel">
+        <h2 class="h3">Cuentas</h2>
+        <div class="table-wrap">
+          <table class="table">
+            <thead><tr><th scope="col">Cuenta</th><th scope="col">Plan</th><th scope="col">Creada</th><th scope="col">Último acceso</th><th scope="col">Monitores</th><th scope="col">2FA</th><th scope="col">Novedades</th></tr></thead>
+            <tbody data-users></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2 class="h3">Monitores</h2>
+        <div class="table-wrap">
+          <table class="table">
+            <thead><tr><th scope="col">Monitor</th><th scope="col">Cuenta</th><th scope="col">Estado</th><th scope="col">Intervalo</th><th scope="col">Última comprobación</th><th scope="col">SSL hasta</th></tr></thead>
+            <tbody data-monitors></tbody>
+          </table>
+        </div>
+      </div>
+
+      <p class="muted small">Las visitas a la web de quien no tiene cuenta están en Cloudflare → Analytics → Web Analytics.</p>
+    </div>
+  </div>
+</section>
+</main>
+</body>
+</html>

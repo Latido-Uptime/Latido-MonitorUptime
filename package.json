@@ -2,7 +2,7 @@
   "name": "latido",
   "private": true,
   "scripts": {
-    "test": "node test-ssrf.cjs && node monitor/test.mjs && node supabase/test.mjs && node --no-warnings supabase/functions/test.mjs"
+    "test": "node test-ssrf.cjs && node test-i18n.mjs && node monitor/test.mjs && node supabase/test.mjs && node --no-warnings supabase/functions/test.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.15",

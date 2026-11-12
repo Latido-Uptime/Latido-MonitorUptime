@@ -289,4 +289,43 @@ assert.strictEqual(await planOf(F), 'free');
 await db.query('delete from auth.users where id = $1', [E]);
 assert.strictEqual((await db.query(`select count(*)::int as n from public.subscriptions where user_id = '${E}'`)).rows[0].n, 0);
 
+// ---------- Panel de administración ----------
+const ADM = '99999999-9999-9999-9999-999999999999';
+await db.query(`insert into auth.users (id, email, email_confirmed_at) values ($1, 'admin@x.com', now())`, [ADM]);
+// Nadie puede hacerse administrador ni ver quién lo es por la API
+await fails(F, `insert into public.admins (user_id) values ('${F}')`, /permission denied/);
+await fails(F, 'select * from public.admins', /permission denied/);
+await fails(F, 'select public.require_admin()', /permission denied/);
+// Una cuenta normal no ve el panel, ni con 2FA
+await fails(F, 'select public.admin_overview()', /No tienes acceso/);
+await assert.rejects(as(F, 'select * from public.admin_users()', [], 'aal2'), /No tienes acceso/);
+await assert.rejects(as(F, 'select * from public.admin_monitors()', [], 'aal2'), /No tienes acceso/);
+// Sin sesión, ni siquiera puede llamar a las funciones
+await db.exec(`select set_config('request.jwt.claim.sub', '', false); set role anon;`);
+for (const q of ['select public.admin_overview()', 'select * from public.admin_users()', 'select * from public.admin_monitors()', 'select * from public.admins'])
+  await assert.rejects(db.query(q), /permission denied/, q);
+await db.exec('reset role');
+// La clave de servidor (service_role) tampoco puede tocar la lista de administradores
+await db.exec('set role service_role');
+await assert.rejects(db.query('select * from public.admins'), /permission denied/);
+await assert.rejects(db.query(`insert into public.admins (user_id) values ('${F}')`), /permission denied/);
+await db.exec('reset role');
+// El administrador necesita entrar con su código de 2FA (aal2)
+await db.query('insert into public.admins (user_id) values ($1)', [ADM]);
+for (const q of ['select public.admin_overview()', 'select * from public.admin_users()', 'select * from public.admin_monitors()'])
+  await fails(ADM, q, /verificación en dos pasos/);
+const ov = (await as(ADM, 'select public.admin_overview() as o', [], 'aal2')).rows[0].o;
+const totalCuentas = (await db.query('select count(*)::int as n from auth.users')).rows[0].n;
+assert.strictEqual(ov.cuentas, totalCuentas); assert.strictEqual(ov.cuentas_verificadas, 1);
+assert.strictEqual(ov.monitores, (await db.query('select count(*)::int as n from public.monitors')).rows[0].n);
+assert.ok(ov.planes.free >= 1 && typeof ov.base_de_datos === 'string');
+const cuentas = (await as(ADM, 'select * from public.admin_users()', [], 'aal2')).rows;
+assert.strictEqual(cuentas.length, totalCuentas);
+assert.deepStrictEqual(cuentas.find(c => c.email === 'g@x.com') && cuentas.find(c => c.email === 'g@x.com').monitores, 2);
+const todos = (await as(ADM, 'select * from public.admin_monitors()', [], 'aal2')).rows;
+assert.ok(todos.length >= 2 && todos.every(m => typeof m.cuenta === 'string'));
+// Borrar la cuenta del administrador le quita el acceso
+await db.query('delete from auth.users where id = $1', [ADM]);
+assert.strictEqual((await db.query('select count(*)::int as n from public.admins')).rows[0].n, 0);
+
 console.log('migración de cuentas: todos los tests pasan');
