@@ -149,6 +149,18 @@ assert.deepStrictEqual((await as(C, `select state, last_ms from public.monitors 
 assert.strictEqual((await as(C, 'select * from public.monitor_checks')).rows.length, 5);
 assert.strictEqual((await as(D, 'select * from public.monitor_checks')).rows.length, 0);
 
+// Historial de 24 h del panel, resumido en el servidor: una fila por monitor, sin chocar con el límite
+// de 1000 filas de la API. 45 tramos de 32 min: '1' bien, '0' algún fallo, '.' sin datos
+await db.query(`insert into public.monitor_checks (monitor_id, ok, checked_at) values ($1, true, now() - interval '12 hours'), ($1, false, now() - interval '25 hours')`, [mc]);
+const [day] = (await as(C, 'select * from public.my_history_24h()')).rows;
+assert.strictEqual(day.monitor_id, mc);
+assert.strictEqual(day.checks, 6); assert.strictEqual(day.failures, 2); // la de hace 25 h no cuenta
+assert.strictEqual(day.slots, '.'.repeat(22) + '1' + '.'.repeat(21) + '0');
+assert.strictEqual((await as(D, 'select * from public.my_history_24h()')).rows.length, 0);
+await db.exec(`select set_config('request.jwt.claim.sub', '', false); set role anon;`);
+await assert.rejects(db.query('select * from public.my_history_24h()'), /permission denied/);
+await db.exec('reset role');
+
 // Si el cliente baja de plan, sus informes no quedan bloqueados por los límites
 await db.exec(`set role service_role; update public.profiles set plan = 'freelancer' where id = '${C}'; reset role;`);
 await as(C, `update public.monitors set interval_seconds = 60 where id = ${mc}`);

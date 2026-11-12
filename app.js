@@ -363,20 +363,18 @@ $('[data-checkout]').addEventListener('submit', async e => {
 });
 
 // ---------- Panel ----------
-let profile = null, plan = null, monitors = [], subscription = null, checks = new Map(); // monitor_id -> resultados de 24 h
+let profile = null, plan = null, monitors = [], subscription = null, history = new Map(); // monitor_id -> resumen de 24 h
 
 async function loadDash() {
   const [p, m, h, s] = await Promise.all([
     sb.from('profiles').select('name, plan, plans(name, max_monitors, min_interval)').single(),
     sb.from('monitors').select('id, name, url, client, interval_seconds, created_at, state, state_since, last_checked_at, last_status, last_ms, last_error, paused').order('created_at'),
-    sb.from('monitor_checks').select('monitor_id, ok, checked_at')
-      .gte('checked_at', new Date(Date.now() - 864e5).toISOString()).order('checked_at').limit(5000),
+    sb.rpc('my_history_24h'), // resumido en el servidor: la API devuelve como mucho 1000 filas por petición
     sb.from('subscriptions').select('plan, status, current_period_end, scheduled_cancel').maybeSingle()
   ]);
   if (p.error || m.error) { toast('No pudimos cargar tus datos. Recarga la página.'); return; }
   profile = p.data; plan = p.data.plans; monitors = m.data; subscription = s && !s.error ? s.data : null;
-  checks = new Map();
-  for (const c of (h.data || [])) { if (!checks.has(c.monitor_id)) checks.set(c.monitor_id, []); checks.get(c.monitor_id).push(c); }
+  history = new Map((h.data || []).map(d => [d.monitor_id, d]));
   renderDash();
   render2fa();
 }
@@ -416,8 +414,8 @@ function renderMonitors() {
     svc.append(dot(m.paused || m.state === 'pending' ? 'new' : m.state), sp);
     const cl = document.createElement('td'); cl.textContent = m.client || '—';
     const hist = document.createElement('td');
-    const list = checks.get(m.id) || [];
-    if (list.length) hist.appendChild(historyBars(list));
+    const day = history.get(m.id);
+    if (day && day.checks) hist.appendChild(historyBars(day));
     else { hist.className = 'muted small'; hist.textContent = m.state === 'pending' ? 'Primera comprobación en curso' : 'Sin datos en 24 h'; }
     const ms = document.createElement('td'); ms.className = 'mono';
     ms.textContent = m.state === 'down' ? 'caído' : m.state === 'up' ? `${m.last_ms} ms` : 'pendiente';
@@ -440,19 +438,13 @@ function renderMonitors() {
   });
 }
 
-/** Barras de las últimas 24 h: cada tramo es rojo si alguna comprobación falló en él. */
-function historyBars(list, n = 45) {
+/** Barras de las últimas 24 h (45 tramos que resume el servidor): rojo si alguna comprobación falló en el tramo. */
+function historyBars(day) {
   const wrap = document.createElement('span');
   wrap.className = 'bars'; wrap.setAttribute('role', 'img');
-  const okPct = 100 * list.filter(c => c.ok).length / list.length;
+  const okPct = 100 * (day.checks - day.failures) / day.checks;
   wrap.setAttribute('aria-label', `Disponibilidad en 24 h: ${okPct.toFixed(2).replace('.', ',')} %`);
-  const start = Date.now() - 864e5, slot = 864e5 / n;
-  const slots = Array.from({ length: n }, () => null);
-  for (const c of list) {
-    const k = Math.min(n - 1, Math.max(0, Math.floor((new Date(c.checked_at) - start) / slot)));
-    slots[k] = slots[k] === false ? false : c.ok;
-  }
-  for (const v of slots) { const i = document.createElement('i'); i.className = v === null ? 'e' : v ? '' : 'd'; wrap.appendChild(i); }
+  for (const v of day.slots) { const i = document.createElement('i'); i.className = v === '.' ? 'e' : v === '1' ? '' : 'd'; wrap.appendChild(i); }
   return wrap;
 }
 
@@ -473,8 +465,9 @@ function renderDash() {
   $('[data-action="cancel-sub"]').hidden = !paid || subscription.scheduled_cancel;
   $('[data-stat-count]').textContent = monitors.length;
   $('[data-stat-down]').textContent = monitors.filter(m => m.state === 'down').length;
-  const all = [...checks.values()].flat();
-  $('[data-stat-uptime]').textContent = all.length ? (100 * all.filter(c => c.ok).length / all.length).toFixed(2).replace('.', ',') + ' %' : '—';
+  let total = 0, bad = 0;
+  for (const d of history.values()) { total += d.checks; bad += d.failures; }
+  $('[data-stat-uptime]').textContent = total ? (100 * (total - bad) / total).toFixed(2).replace('.', ',') + ' %' : '—';
 }
 
 $('[data-add-monitor]').addEventListener('submit', async e => {
