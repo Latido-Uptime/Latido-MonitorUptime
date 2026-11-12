@@ -363,7 +363,7 @@ $('[data-checkout]').addEventListener('submit', async e => {
 });
 
 // ---------- Panel ----------
-let profile = null, plan = null, monitors = [], subscription = null, history = new Map(), incidents = []; // history: monitor_id -> resumen de 24 h
+let profile = null, plan = null, monitors = [], subscription = null, day24 = new Map(), incidents = []; // day24: monitor_id -> resumen de 24 h
 
 async function loadDash() {
   const [p, m, h, s, i] = await Promise.all([
@@ -375,7 +375,7 @@ async function loadDash() {
   ]);
   if (p.error || m.error) { toast('No pudimos cargar tus datos. Recarga la página.'); return; }
   profile = p.data; plan = p.data.plans; monitors = m.data; subscription = s && !s.error ? s.data : null;
-  history = new Map((h.data || []).map(d => [d.monitor_id, d]));
+  day24 = new Map((h.data || []).map(d => [d.monitor_id, d]));
   incidents = i.data || [];
   renderDash();
   render2fa();
@@ -422,7 +422,7 @@ function renderMonitors() {
     svc.append(dot(m.paused || m.state === 'pending' ? 'new' : m.state), sp);
     const cl = document.createElement('td'); cl.textContent = m.client || '—';
     const hist = document.createElement('td');
-    const day = history.get(m.id);
+    const day = day24.get(m.id);
     if (day && day.checks) hist.appendChild(historyBars(day));
     else { hist.className = 'muted small'; hist.textContent = m.state === 'pending' ? 'Primera comprobación en curso' : 'Sin datos en 24 h'; }
     const ms = document.createElement('td'); ms.className = 'mono';
@@ -594,7 +594,7 @@ function renderDash() {
   const ssl = monitors.map(m => new Date(m.ssl_expires_at)).filter(d => d > Date.now()).sort((a, b) => a - b);
   $('[data-stat-ssl]').textContent = ssl.length ? daysText(daysLeft(ssl[0])) : '—';
   let total = 0, bad = 0;
-  for (const d of history.values()) { total += d.checks; bad += d.failures; }
+  for (const d of day24.values()) { total += d.checks; bad += d.failures; }
   $('[data-stat-uptime]').textContent = total ? (100 * (total - bad) / total).toFixed(2).replace('.', ',') + ' %' : '—';
 }
 
