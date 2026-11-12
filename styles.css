@@ -99,6 +99,10 @@ section { padding: clamp(64px, 10vw, 120px) 0; }
 .diag .mono { font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--down); margin-right: 6px; }
 .incident-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .incident-actions .mono { font-size: .75rem; }
+.incident-list { list-style: none; margin: 0; padding: 0; }
+.incident-list p { margin: 0 0 6px; }
+.incident.is-done { border-color: var(--line); background: none; }
+.incident textarea { display: block; width: 100%; margin-top: 10px; font: .8rem var(--mono); }
 .badge { display: inline-block; font: 500 .72rem var(--mono); padding: 2px 8px; border-radius: 10px; }
 .badge-down { background: var(--down); color: #fff; }
 .badge-up { background: color-mix(in srgb, var(--up) 14%, transparent); color: var(--up); }

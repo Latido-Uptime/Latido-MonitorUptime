@@ -363,18 +363,20 @@ $('[data-checkout]').addEventListener('submit', async e => {
 });
 
 // ---------- Panel ----------
-let profile = null, plan = null, monitors = [], subscription = null, history = new Map(); // monitor_id -> resumen de 24 h
+let profile = null, plan = null, monitors = [], subscription = null, history = new Map(), incidents = []; // history: monitor_id -> resumen de 24 h
 
 async function loadDash() {
-  const [p, m, h, s] = await Promise.all([
+  const [p, m, h, s, i] = await Promise.all([
     sb.from('profiles').select('name, plan, plans(name, max_monitors, min_interval)').single(),
     sb.from('monitors').select('id, name, url, client, interval_seconds, created_at, state, state_since, last_checked_at, last_status, last_ms, last_error, paused').order('created_at'),
     sb.rpc('my_history_24h'), // resumido en el servidor: la API devuelve como mucho 1000 filas por petición
-    sb.from('subscriptions').select('plan, status, current_period_end, scheduled_cancel').maybeSingle()
+    sb.from('subscriptions').select('plan, status, current_period_end, scheduled_cancel').maybeSingle(),
+    sb.from('incidents').select('monitor_id, started_at, last_ok_at, status, error, last_fail_at, ended_at').order('started_at', { ascending: false }).limit(50)
   ]);
   if (p.error || m.error) { toast('No pudimos cargar tus datos. Recarga la página.'); return; }
   profile = p.data; plan = p.data.plans; monitors = m.data; subscription = s && !s.error ? s.data : null;
   history = new Map((h.data || []).map(d => [d.monitor_id, d]));
+  incidents = i.data || [];
   renderDash();
   render2fa();
 }
@@ -448,9 +450,86 @@ function historyBars(day) {
   return wrap;
 }
 
+// ---------- Incidencias: la ficha que la agencia reenvía a su cliente ----------
+const when = d => new Date(d).toLocaleString('es', { dateStyle: 'short', timeStyle: 'short' });
+const every = m => m.interval_seconds < 60 ? `${m.interval_seconds} s` : `${m.interval_seconds / 60} min`;
+/** Minutos entre detectar la caída y ver que volvió (o hasta ahora, si sigue caída). */
+const downFor = i => Math.max(1, Math.round((new Date(i.ended_at || Date.now()) - new Date(i.started_at)) / 6e4));
+
+/** Qué revisar primero según lo que vio Latido. Es una pista, no un diagnóstico: por eso se dice "probable". */
+function hint(i) {
+  const s = i.status, e = i.error || '';
+  if (s >= 500) return 'el estado del hosting y los registros de errores del servidor';
+  if ([401, 403, 429].includes(s)) return 'si un firewall o la protección anti-bots está bloqueando las comprobaciones';
+  if (s === 404 || s === 410) return 'si la página cambió de dirección o se borró';
+  if (s >= 400) return 'la configuración del servidor para esa dirección';
+  if (/SSL/.test(e)) return 'el certificado SSL: su renovación y su configuración';
+  if (/dominio/i.test(e)) return 'el DNS y que el dominio no haya caducado';
+  if (/rechazada|cortó/.test(e)) return 'que el servidor web esté en marcha y acepte conexiones';
+  if (/Sin respuesta/.test(e)) return 'si el servidor está sobrecargado o caído';
+  if (/redirecci/i.test(e)) return 'las redirecciones de la web';
+  return 'el estado del servidor y del hosting';
+}
+
+/** La ficha en texto plano, lista para pegar en un email o chat con el cliente. */
+function clientMessage(i, m) {
+  return [
+    `Incidencia en ${m.name} (${m.url})`,
+    '',
+    `Qué pasó: ${(i.error || 'la web no respondió correctamente').replace(/\.$/, '')}.`, // algunos errores ya traen punto
+    `Detectada: ${when(i.started_at)}${i.last_ok_at ? ` (la comprobación anterior, ${when(i.last_ok_at)}, fue correcta)` : ''}. Se confirmó con una segunda comprobación 5 segundos después.`,
+    i.ended_at
+      ? `Resuelta: ${when(i.ended_at)}. Duración aproximada: ${downFor(i)} min (la web se comprueba cada ${every(m)}).`
+      : `Estado: sigue sin responder, desde hace unos ${downFor(i)} min.`,
+    `Qué revisar primero (causa probable): ${hint(i)}.`
+  ].join('\n');
+}
+
+function renderIncidents() {
+  const ul = $('[data-incidents]');
+  ul.replaceChildren();
+  const list = incidents.filter(i => monitors.some(m => m.id === i.monitor_id));
+  if (!list.length) {
+    const li = document.createElement('li'); li.className = 'muted small'; li.textContent = 'Sin incidencias en los últimos 90 días.';
+    ul.appendChild(li); return;
+  }
+  for (const i of list) {
+    const m = monitors.find(x => x.id === i.monitor_id);
+    const li = document.createElement('li'); li.className = i.ended_at ? 'incident is-done' : 'incident';
+    const head = document.createElement('div'); head.className = 'incident-head';
+    const badge = document.createElement('span'); badge.className = i.ended_at ? 'badge badge-up' : 'badge badge-down';
+    badge.textContent = i.ended_at ? `Resuelta · ${downFor(i)} min` : 'Caída en curso';
+    const b = document.createElement('b'); b.textContent = m.client ? `${m.name} · ${m.client}` : m.name;
+    head.append(badge, b);
+    const diag = document.createElement('p'); diag.className = 'diag';
+    const label = document.createElement('span'); label.className = 'mono'; label.textContent = 'Motivo';
+    diag.append(label, i.error || 'La web no respondió correctamente');
+    const times = document.createElement('p'); times.className = 'small muted';
+    times.textContent = `Detectada ${when(i.started_at)}` + (i.last_ok_at ? ` · última comprobación correcta ${when(i.last_ok_at)}` : '')
+      + (i.ended_at ? ` · resuelta ${when(i.ended_at)}` : '');
+    const tip = document.createElement('p'); tip.className = 'small'; tip.textContent = `Qué revisar primero (causa probable): ${hint(i)}.`;
+    const actions = document.createElement('div'); actions.className = 'incident-actions';
+    const copy = document.createElement('button'); copy.type = 'button'; copy.className = 'btn btn-ghost btn-sm';
+    copy.textContent = 'Copiar mensaje para el cliente';
+    copy.addEventListener('click', () => {
+      const text = clientMessage(i, m);
+      navigator.clipboard.writeText(text).then(() => toast('Mensaje copiado. Pégalo en tu email o chat con el cliente.'), () => {
+        // Sin permiso para el portapapeles: se muestra el texto ya seleccionado para copiarlo a mano
+        const ta = li.querySelector('textarea') || li.appendChild(document.createElement('textarea'));
+        ta.readOnly = true; ta.rows = 7; ta.value = text; ta.setAttribute('aria-label', 'Mensaje para el cliente');
+        ta.focus(); ta.select();
+        toast('No se pudo copiar solo: el mensaje está seleccionado debajo, cópialo con Ctrl+C o Cmd+C.');
+      });
+    });
+    actions.appendChild(copy);
+    li.append(head, diag, times, tip, actions);
+    ul.appendChild(li);
+  }
+}
+
 function renderDash() {
   if (!plan) return;
-  renderMonitors(); renderIntervals();
+  renderMonitors(); renderIntervals(); renderIncidents();
   $('[data-account-line]').textContent = `Panel · ${session.user.email}`;
   $('[data-plan-line]').textContent = `Plan ${plan.name}`;
   const paid = profile.plan !== 'free' && subscription;

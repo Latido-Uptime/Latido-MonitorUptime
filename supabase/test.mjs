@@ -144,6 +144,19 @@ await checker('select public.checker_alert_sent($1)', [alertRow[0].id]);
 assert.strictEqual((await queued()).length, 0);                                       // enviado: sale de la cola
 await report(true, 200, 1, 'x'.repeat(500)); // un error larguísimo se recorta a 200 caracteres, sin fallar
 
+// Incidencias: una por caída, con la comprobación anterior a cada lado (la caída empezó entre
+// last_ok_at y started_at, y terminó entre last_fail_at y ended_at). Solo las ve el dueño
+const inc = (await as(C, 'select status, error, last_ok_at, started_at, last_fail_at, ended_at from public.incidents')).rows;
+assert.strictEqual(inc.length, 1);
+assert.strictEqual(inc[0].error, 'El dominio no resuelve'); assert.strictEqual(inc[0].status, null);
+assert.ok(inc[0].last_ok_at < inc[0].started_at && inc[0].started_at < inc[0].last_fail_at && inc[0].last_fail_at < inc[0].ended_at);
+assert.strictEqual((await as(D, 'select * from public.incidents')).rows.length, 0);
+await fails(C, `insert into public.incidents (monitor_id) values (${mc})`, /permission denied/);
+await assert.rejects(checker('select * from public.incidents'), /permission denied/);
+await db.exec(`select set_config('request.jwt.claim.sub', '', false); set role anon;`);
+await assert.rejects(db.query('select * from public.incidents'), /permission denied/);
+await db.exec('reset role');
+
 // El dueño ve su estado e historial; otro usuario no ve nada
 assert.deepStrictEqual((await as(C, `select state, last_ms from public.monitors where id = ${mc}`)).rows[0], { state: 'up', last_ms: 1 });
 assert.strictEqual((await as(C, 'select * from public.monitor_checks')).rows.length, 5);
@@ -167,11 +180,13 @@ await as(C, `update public.monitors set interval_seconds = 60 where id = ${mc}`)
 await db.exec(`set role service_role; update public.profiles set plan = 'free' where id = '${C}'; reset role;`);
 await report(false, 500, 30, 'El servidor respondió 500');
 assert.strictEqual((await due())[0].alert, 'down');
+assert.deepStrictEqual((await as(C, 'select status, ended_at from public.incidents order by started_at')).rows.map(r => [r.status, r.ended_at === null]), [[null, false], [500, true]]); // otra caída, otra incidencia abierta
 
 // Borrar el monitor borra su historial y sus avisos pendientes; un informe tardío de un monitor borrado no falla
 await as(C, `delete from public.monitors where id = ${mc}`);
 assert.strictEqual((await db.query('select count(*)::int as n from public.monitor_checks')).rows[0].n, 0);
 assert.strictEqual((await queued()).length, 0);
+assert.strictEqual((await db.query('select count(*)::int as n from public.incidents')).rows[0].n, 0);
 assert.strictEqual((await report(true, 200, 10, null)).rows.length, 0);
 
 // ---------- Fase 4: suscripciones con Paddle ----------
