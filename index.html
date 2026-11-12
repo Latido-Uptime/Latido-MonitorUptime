@@ -38,7 +38,7 @@
     <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-links">Menú</button>
     <nav id="nav-links" class="nav-links" aria-label="Principal">
       <a href="#/#funciones">Funciones</a>
-      <a href="#/#seguridad">Seguridad</a>
+      <a href="#/seguridad">Seguridad</a>
       <a href="#/#precios">Precios</a>
       <span class="nav-sep" aria-hidden="true"></span>
       <a href="#/login" data-guest>Iniciar sesión</a>
@@ -157,30 +157,11 @@
 </section>
 
 <section id="seguridad">
-  <div class="wrap split">
-    <div>
-      <h2>Un monitor que no se puede usar como arma</h2>
-      <p class="lede">Un servicio que visita URLs por encargo es un blanco fácil. Así cerramos cada puerta:</p>
-      <ul class="checks">
-        <li><b>Filtro anti-SSRF.</b> Antes de cada comprobación y tras cada redirección resolvemos el DNS y bloqueamos redes privadas, loopback y metadatos de la nube.</li>
-        <li><b>Solo http y https,</b> máximo 5 redirecciones y 10 s de espera. Guardamos el código de estado y el tiempo; nunca descargamos el contenido de la página.</li>
-        <li><b>Comprobador aislado:</b> corre en su propio servidor y en la base de datos solo puede pedir qué toca comprobar y guardar el resultado. No puede leer cuentas ni datos.</li>
-        <li><b>Límites anti-abuso:</b> intervalo mínimo por plan, monitores por cuenta y por dominio entre todas las cuentas.</li>
-        <li><b>Login probado</b> con 2FA por app, contraseñas cifradas con bcrypt y comprobadas contra filtraciones conocidas.</li>
-        <li><b>Pagos con Paddle:</b> nunca vemos tu tarjeta.</li>
-      </ul>
-    </div>
-    <div class="try">
-      <h3>Pruébalo: intenta monitorizar una dirección interna</h3>
-      <form class="form" data-ssrf-try novalidate>
-        <label for="try-url">URL</label>
-        <input type="text" id="try-url" name="url" class="mono" value="http://169.254.169.254/latest/meta-data/" autocomplete="off" spellcheck="false">
-        <p class="field-msg" data-msg="url" aria-live="polite"></p>
-        <button class="btn btn-primary" type="submit">Comprobar URL</button>
-      </form>
-      <p class="muted small">Prueba también <code>http://localhost:5432</code>, <code>http://2130706433</code> o <code>http://[::1]</code>.</p>
-    </div>
-  </div>
+  <div class="wrap"><div class="measure">
+    <h2>Un monitor que no se puede usar como arma</h2>
+    <p class="lede">Filtro anti-SSRF antes de cada comprobación y tras cada redirección, comprobador aislado de las cuentas, límites anti-abuso y login con 2FA.</p>
+    <a class="btn btn-ghost" href="#/seguridad">Cómo protegemos Latido</a>
+  </div></div>
 </section>
 
 <section class="band" id="precios">
@@ -253,6 +234,36 @@
   <div class="wrap close-row">
     <h2>Tu próxima caída, contada antes de que llame el cliente.</h2>
     <a class="btn btn-primary" href="#/registro">Crear cuenta gratis</a>
+  </div>
+</section>
+</div>
+
+<!-- ================= SEGURIDAD ================= -->
+<div data-view="/seguridad" hidden>
+<section>
+  <div class="wrap split">
+    <div>
+      <h1>Un monitor que no se puede usar como arma</h1>
+      <p class="lede">Un servicio que visita URLs por encargo es un blanco fácil. Así cerramos cada puerta:</p>
+      <ul class="checks">
+        <li><b>Filtro anti-SSRF.</b> Antes de cada comprobación y tras cada redirección resolvemos el DNS y bloqueamos redes privadas, loopback y metadatos de la nube.</li>
+        <li><b>Solo http y https,</b> máximo 5 redirecciones y 10 s de espera. Guardamos el código de estado, el tiempo y la caducidad del certificado; nunca descargamos el contenido de la página.</li>
+        <li><b>Comprobador aislado:</b> corre en su propio servidor y en la base de datos solo puede pedir qué toca comprobar, guardar el resultado y recoger los avisos que debe enviar. No puede leer las cuentas ni el resto de datos.</li>
+        <li><b>Límites anti-abuso:</b> intervalo mínimo por plan, monitores por cuenta y por dominio entre todas las cuentas.</li>
+        <li><b>Login probado</b> con 2FA por app, contraseñas cifradas con bcrypt y comprobadas contra filtraciones conocidas.</li>
+        <li><b>Pagos con Paddle:</b> nunca vemos tu tarjeta.</li>
+      </ul>
+    </div>
+    <div class="try">
+      <h2 class="h3">Pruébalo: intenta monitorizar una dirección interna</h2>
+      <form class="form" data-ssrf-try novalidate>
+        <label for="try-url">URL</label>
+        <input type="text" id="try-url" name="url" class="mono" value="http://169.254.169.254/latest/meta-data/" autocomplete="off" spellcheck="false">
+        <p class="field-msg" data-msg="url" aria-live="polite"></p>
+        <button class="btn btn-primary" type="submit">Comprobar URL</button>
+      </form>
+      <p class="muted small">Prueba también <code>http://localhost:5432</code>, <code>http://2130706433</code> o <code>http://[::1]</code>.</p>
+    </div>
   </div>
 </section>
 </div>
