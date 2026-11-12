@@ -93,6 +93,9 @@ section { padding: clamp(64px, 10vw, 120px) 0; }
 .af-side i { font-style: normal; font-family: var(--mono); font-size: .75rem; color: var(--muted); }
 .af-side i.t-down { color: #fff; background: var(--down); border-radius: 10px; padding: 0 6px; }
 .af-main { padding: 14px; min-width: 0; }
+.af-demo { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 14px; border-top: 1px solid var(--line); background: #fff; }
+.af-demo .mono { font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-right: 4px; }
+.af-demo [aria-pressed="true"] { background: var(--ink); color: #fff; }
 .incident { border: 1px solid color-mix(in srgb, var(--down) 35%, var(--line)); background: color-mix(in srgb, var(--down) 5%, #fff); border-radius: 6px; padding: 12px 14px; margin-bottom: 12px; }
 .incident-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; flex-wrap: wrap; }
 .diag { margin: 0 0 10px; color: #2c3038; }

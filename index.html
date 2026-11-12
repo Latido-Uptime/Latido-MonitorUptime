@@ -83,19 +83,27 @@
           </ul>
         </aside>
         <div class="af-main">
-          <div class="incident">
-            <div class="incident-head">
-              <span class="badge badge-down">Caída · 4 min</span>
-              <b>clinicaortiz.example</b>
-            </div>
-            <p class="diag"><span class="mono">Motivo</span> El certificado SSL ha caducado.</p>
-            <div class="incident-actions">
-              <span class="mono muted">Aviso enviado por email a las 09:12 · te avisaremos cuando vuelva</span>
-            </div>
-          </div>
+          <ul class="incident-list" data-demo-incident aria-live="polite">
+            <li class="incident">
+              <div class="incident-head">
+                <span class="badge badge-down">Caída · 4 min</span>
+                <b>clinicaortiz.example</b>
+              </div>
+              <p class="diag"><span class="mono">Motivo</span> El certificado SSL ha caducado.</p>
+              <div class="incident-actions">
+                <span class="mono muted">Aviso enviado por email a las 09:12 · te avisaremos cuando vuelva</span>
+              </div>
+            </li>
+          </ul>
           <ul class="mon-list" data-hero-monitors></ul>
         </div>
       </div>
+      <figcaption class="af-demo">
+        <span class="mono">Simula una caída</span>
+        <button type="button" class="btn btn-ghost btn-sm" data-demo="503" aria-pressed="false">Error 503</button>
+        <button type="button" class="btn btn-ghost btn-sm" data-demo="ssl" aria-pressed="false">Certificado caducado</button>
+        <button type="button" class="btn btn-ghost btn-sm" data-demo="dns" aria-pressed="false">Dominio que no responde</button>
+      </figcaption>
     </figure>
   </div>
 </section>

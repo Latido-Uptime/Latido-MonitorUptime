@@ -107,9 +107,9 @@ function renderHero() {
     const name = document.createElement('span'); name.className = 'name';
     const b = document.createElement('b'); b.textContent = m.name;
     const s = document.createElement('span'); s.className = 'mono';
-    s.textContent = `${m.client} · ${m.state === 'warn' ? 'lento ' + m.ms + ' ms' : m.ms + ' ms'}`;
+    s.textContent = `${m.client} · ${m.state === 'down' ? 'caída' : m.state === 'warn' ? 'lento ' + m.ms + ' ms' : m.ms + ' ms'}`;
     name.append(b, s);
-    li.append(dot(m.state), name, bars(m.name));
+    li.append(dot(m.state), name, bars(m.name, 90, m.downToday));
     ul.appendChild(li);
   });
 }
@@ -501,39 +501,72 @@ function renderIncidents() {
     const li = document.createElement('li'); li.className = 'muted small'; li.textContent = 'Sin incidencias en los últimos 90 días.';
     ul.appendChild(li); return;
   }
-  for (const i of list) {
-    const m = monitors.find(x => x.id === i.monitor_id);
-    const li = document.createElement('li'); li.className = i.ended_at ? 'incident is-done' : 'incident';
-    const head = document.createElement('div'); head.className = 'incident-head';
-    const badge = document.createElement('span'); badge.className = i.ended_at ? 'badge badge-up' : 'badge badge-down';
-    badge.textContent = i.ended_at ? `Resuelta · ${downFor(i)} min` : 'Caída en curso';
-    const b = document.createElement('b'); b.textContent = m.client ? `${m.name} · ${m.client}` : m.name;
-    head.append(badge, b);
-    const diag = document.createElement('p'); diag.className = 'diag';
-    const label = document.createElement('span'); label.className = 'mono'; label.textContent = 'Motivo';
-    diag.append(label, i.error || 'La web no respondió correctamente');
-    const times = document.createElement('p'); times.className = 'small muted';
-    times.textContent = `Detectada ${when(i.started_at)}` + (i.last_ok_at ? ` · última comprobación correcta ${when(i.last_ok_at)}` : '')
-      + (i.ended_at ? ` · resuelta ${when(i.ended_at)}` : '');
-    const tip = document.createElement('p'); tip.className = 'small'; tip.textContent = `Qué revisar primero (causa probable): ${hint(i)}.`;
-    const actions = document.createElement('div'); actions.className = 'incident-actions';
-    const copy = document.createElement('button'); copy.type = 'button'; copy.className = 'btn btn-ghost btn-sm';
-    copy.textContent = 'Copiar mensaje para el cliente';
-    copy.addEventListener('click', () => {
-      const text = clientMessage(i, m);
-      navigator.clipboard.writeText(text).then(() => toast('Mensaje copiado. Pégalo en tu email o chat con el cliente.'), () => {
-        // Sin permiso para el portapapeles: se muestra el texto ya seleccionado para copiarlo a mano
-        const ta = li.querySelector('textarea') || li.appendChild(document.createElement('textarea'));
-        ta.readOnly = true; ta.rows = 7; ta.value = text; ta.setAttribute('aria-label', 'Mensaje para el cliente');
-        ta.focus(); ta.select();
-        toast('No se pudo copiar solo: el mensaje está seleccionado debajo, cópialo con Ctrl+C o Cmd+C.');
-      });
-    });
-    actions.appendChild(copy);
-    li.append(head, diag, times, tip, actions);
-    ul.appendChild(li);
-  }
+  for (const i of list) ul.appendChild(incidentCard(i, monitors.find(x => x.id === i.monitor_id)));
 }
+
+/** La ficha de una incidencia: la misma en el panel y en la demo de la portada. */
+function incidentCard(i, m) {
+  const li = document.createElement('li'); li.className = i.ended_at ? 'incident is-done' : 'incident';
+  const head = document.createElement('div'); head.className = 'incident-head';
+  const badge = document.createElement('span'); badge.className = i.ended_at ? 'badge badge-up' : 'badge badge-down';
+  badge.textContent = i.ended_at ? `Resuelta · ${downFor(i)} min` : 'Caída en curso';
+  const b = document.createElement('b'); b.textContent = m.client ? `${m.name} · ${m.client}` : m.name;
+  head.append(badge, b);
+  const diag = document.createElement('p'); diag.className = 'diag';
+  const label = document.createElement('span'); label.className = 'mono'; label.textContent = 'Motivo';
+  diag.append(label, i.error || 'La web no respondió correctamente');
+  const times = document.createElement('p'); times.className = 'small muted';
+  times.textContent = `Detectada ${when(i.started_at)}` + (i.last_ok_at ? ` · última comprobación correcta ${when(i.last_ok_at)}` : '')
+    + (i.ended_at ? ` · resuelta ${when(i.ended_at)}` : '');
+  const tip = document.createElement('p'); tip.className = 'small'; tip.textContent = `Qué revisar primero (causa probable): ${hint(i)}.`;
+  const actions = document.createElement('div'); actions.className = 'incident-actions';
+  const copy = document.createElement('button'); copy.type = 'button'; copy.className = 'btn btn-ghost btn-sm';
+  copy.textContent = 'Copiar mensaje para el cliente';
+  copy.addEventListener('click', () => {
+    const text = clientMessage(i, m);
+    navigator.clipboard.writeText(text).then(() => toast('Mensaje copiado. Pégalo en tu email o chat con el cliente.'), () => {
+      // Sin permiso para el portapapeles: se muestra el texto ya seleccionado para copiarlo a mano
+      const ta = li.querySelector('textarea') || li.appendChild(document.createElement('textarea'));
+      ta.readOnly = true; ta.rows = 7; ta.value = text; ta.setAttribute('aria-label', 'Mensaje para el cliente');
+      ta.focus(); ta.select();
+      toast('No se pudo copiar solo: el mensaje está seleccionado debajo, cópialo con Ctrl+C o Cmd+C.');
+    });
+  });
+  actions.appendChild(copy);
+  li.append(head, diag, times, tip, actions);
+  return li;
+}
+
+// ---------- Demo de la portada: una caída simulada, con los mensajes reales del comprobador ----------
+const DEMO = {
+  503: { status: 503, error: 'El servidor respondió 503' },
+  ssl: { status: null, error: 'El certificado SSL ha caducado' },
+  dns: { status: null, error: 'El dominio no resuelve.' }
+};
+let demoTimer;
+$$('[data-demo]').forEach(btn => btn.addEventListener('click', () => {
+  const m = { name: 'Tienda online', url: 'https://ferreterialumen.example', client: 'Ferretería Lumen', interval_seconds: 300 };
+  const ago = min => new Date(Date.now() - min * 6e4).toISOString();
+  const i = { ...DEMO[btn.dataset.demo], started_at: ago(6), last_ok_at: ago(11), ended_at: null };
+  const hero = HERO.find(h => h.name === m.name);
+  const show = mail => {
+    const card = incidentCard(i, m), note = document.createElement('p'), tag = document.createElement('span');
+    tag.className = 'badge badge-warn'; tag.textContent = 'Simulación';
+    note.className = 'small'; note.append(tag, ` Email enviado: ${mail}`);
+    card.prepend(note);
+    $('[data-demo-incident]').replaceChildren(card);
+    renderHero();
+  };
+  $$('[data-demo]').forEach(b => b.setAttribute('aria-pressed', String(b === btn)));
+  clearTimeout(demoTimer);
+  Object.assign(hero, { state: 'down', downToday: true });
+  show(`🔴 Caída: ${m.name}`);
+  demoTimer = setTimeout(() => {
+    Object.assign(i, { ended_at: ago(0), last_fail_at: ago(1) });
+    hero.state = 'up';
+    show(`🟢 Recuperado: ${m.name}`);
+  }, 3000);
+}));
 
 function renderDash() {
   if (!plan) return;
