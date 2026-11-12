@@ -3,7 +3,7 @@ import assert from 'node:assert';
 import postgres from 'postgres';
 import { PGLiteSocketServer } from '@electric-sql/pglite-socket';
 import { check } from './check.mjs';
-import { runBatch, alertEmail, alertLimiter } from './run.mjs';
+import { runBatch, sendDue, alertEmail, alertLimiter } from './run.mjs';
 import { createDb } from '../supabase/stub.mjs';
 
 // ---------- Anti-SSRF: nunca se conecta a direcciones internas, ni directas ni vía DNS ----------
@@ -19,10 +19,12 @@ const live = await check('https://example.com');
 if (live.error && /resuelve|conexión|ENETUNREACH|EAI_AGAIN/i.test(live.error)) console.log('(sin internet: se omite la prueba real)');
 else { assert.strictEqual(live.ok, true, JSON.stringify(live)); assert.ok(live.ms > 0); }
 
-// ---------- Textos de aviso: sin saltos de línea inyectados en el asunto ----------
-const down = alertEmail({ alert: 'down', monitor_name: 'Tienda\r\nBcc: x@y.com', monitor_url: 'https://t.com' }, { error: 'El servidor respondió 503' });
+// ---------- Textos de aviso: sin saltos de línea inyectados en el asunto, con la hora del suceso ----------
+const at = new Date('2026-11-08T14:00:00Z');
+const down = alertEmail({ alert: 'down', monitor_name: 'Tienda\r\nBcc: x@y.com', monitor_url: 'https://t.com', error: 'El servidor respondió 503', event_at: at });
 assert.ok(!/[\r\n]/.test(down.subject)); assert.match(down.text, /503/);
-assert.match(alertEmail({ alert: 'up', monitor_name: 'T', monitor_url: 'https://t.com', down_minutes: 7 }, { status: 200, ms: 90 }).text, /7 min/);
+assert.ok(down.text.includes(at.toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'short', timeZone: process.env.TIME_ZONE || 'America/Guayaquil' })));
+assert.match(alertEmail({ alert: 'up', monitor_name: 'T', monitor_url: 'https://t.com', down_minutes: 7, status: 200, ms: 90, event_at: at }).text, /7 min/);
 
 // ---------- Tope de avisos por cuenta y hora ----------
 const allow = alertLimiter(2, 1000);
@@ -42,14 +44,27 @@ const sql = postgres({ host: '127.0.0.1', port, database: 'postgres', username: 
 await sql`set role latido_checker`; // a partir de aquí, solo los permisos del comprobador
 
 const fakeCheck = async url => url.includes('rota') ? { ok: false, status: 503, ms: 40, error: 'El servidor respondió 503' } : { ok: true, status: 200, ms: 120, error: null };
-const sent = [];
-const notify = async (a, r) => { sent.push({ ...a, ...alertEmail(a, r) }); };
+assert.strictEqual(await runBatch({ sql, checkFn: fakeCheck, retryDelayMs: 0 }), 2);
 
-assert.strictEqual(await runBatch({ sql, checkFn: fakeCheck, notify, retryDelayMs: 0 }), 2);
-assert.strictEqual(sent.length, 1);
-assert.strictEqual(sent[0].alert, 'down'); assert.strictEqual(sent[0].email, 'dueno@x.com'); assert.match(sent[0].subject, /Web rota/);
-assert.strictEqual(await runBatch({ sql, checkFn: fakeCheck, notify, retryDelayMs: 0 }), 0); // aún no les toca
+// El aviso de "Web rota" espera en la cola: si Resend falla o se llega al tope, no se pierde
+const sent = [];
+const ok = async a => { sent.push({ ...a, ...alertEmail(a) }); };
+const failing = async () => { throw new Error('Resend respondió 429'); };
+const later = async () => { await sql`reset role`; await sql`update public.alert_outbox set next_attempt_at = now()`; await sql`set role latido_checker`; };
+assert.deepStrictEqual(await sendDue({ sql, send: failing }), { sent: 0, failed: 1 });
+assert.deepStrictEqual(await sendDue({ sql, send: ok }), { sent: 0, failed: 0 }); // espera su reintento
+await later();
+assert.deepStrictEqual(await sendDue({ sql, send: ok, allow: () => false }), { sent: 0, failed: 0 }); // el tope lo aplaza
+await later();
+assert.deepStrictEqual(await sendDue({ sql, send: ok }), { sent: 1, failed: 0 });
+assert.strictEqual(sent[0].alert, 'down'); assert.strictEqual(sent[0].email, 'dueno@x.com');
+assert.match(sent[0].subject, /Web rota/); assert.match(sent[0].text, /503/);
+await later();
+assert.deepStrictEqual(await sendDue({ sql, send: ok }), { sent: 0, failed: 0 }); // enviado: ya no está en la cola
+
+assert.strictEqual(await runBatch({ sql, checkFn: fakeCheck, retryDelayMs: 0 }), 0); // aún no les toca
 await assert.rejects(sql`select * from public.monitors`, /permission denied/); // el comprobador no lee tablas
+await assert.rejects(sql`select * from public.alert_outbox`, /permission denied/);
 
 await sql.end(); await server.stop();
 await db.exec('reset role'); // PGlite comparte una sola sesión con la conexión de red

@@ -1,5 +1,5 @@
 # Comprobador de Latido para Fly.io: sin puertos abiertos; en la base de datos solo puede
-# llamar a checker_claim y checker_report (rol latido_checker).
+# llamar a checker_claim, checker_report, checker_alerts_due y checker_alert_sent (rol latido_checker).
 FROM node:24-alpine
 WORKDIR /app
 COPY package.json package-lock.json ./

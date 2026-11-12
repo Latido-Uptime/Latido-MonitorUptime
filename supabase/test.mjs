@@ -100,11 +100,15 @@ await fails(C, `update public.monitors set state = 'up' where id = ${mc}`, /perm
 await fails(C, `insert into public.monitors (name, url, interval_seconds, state) values ('x','https://c2.com',300,'up')`, /permission denied/);
 await fails(C, 'select * from public.checker_claim(10)', /permission denied/);
 await fails(C, `select * from public.checker_report(${mc}, true, 200, 10, null)`, /permission denied/);
+await fails(C, 'select * from public.checker_alerts_due(10)', /permission denied/);
+await fails(C, 'select public.checker_alert_sent(1)', /permission denied/);
+await fails(C, 'select * from public.alert_outbox', /permission denied/);
 await as(C, `update public.monitors set name = 'Renombrado' where id = ${mc}`); // sí puede configurar
 
 // El comprobador no puede leer ninguna tabla ni las cuentas
 await assert.rejects(checker('select * from public.monitors'), /permission denied/);
 await assert.rejects(checker('select * from public.monitor_checks'), /permission denied/);
+await assert.rejects(checker('select * from public.alert_outbox'), /permission denied/);
 await assert.rejects(checker('select * from public.profiles'), /permission denied/);
 await assert.rejects(checker('select email from auth.users'), /permission denied/);
 
@@ -112,15 +116,32 @@ await assert.rejects(checker('select email from auth.users'), /permission denied
 assert.deepStrictEqual((await checker('select * from public.checker_claim(10)')).rows.map(r => r.id), [mc]);
 assert.strictEqual((await checker('select * from public.checker_claim(10)')).rows.length, 0);
 
-// Avisos solo al cambiar de estado
+// Avisos solo al cambiar de estado. Van a una cola: el comprobador los recoge y los borra al enviarlos
 const report = (ok, status, ms, err) => checker('select * from public.checker_report($1, $2, $3, $4, $5)', [mc, ok, status, ms, err]);
-assert.strictEqual((await report(true, 200, 120, null)).rows.length, 0);                 // primera OK: sin aviso
-let alertRow = (await report(false, null, null, 'El dominio no resuelve')).rows;          // cae
+const due = async () => (await checker('select * from public.checker_alerts_due(10)')).rows;
+const queued = async () => (await db.query('select alert, attempts from public.alert_outbox')).rows;
+const waitSeconds = async () => Number((await db.query('select extract(epoch from next_attempt_at - now()) as s from public.alert_outbox')).rows[0].s);
+await report(true, 200, 120, null);
+assert.strictEqual((await due()).length, 0);                                          // primera OK: sin aviso
+await report(false, null, null, 'El dominio no resuelve');                             // cae
+let alertRow = await due();
 assert.strictEqual(alertRow[0].alert, 'down'); assert.strictEqual(alertRow[0].email, 'c@x.com');
-assert.strictEqual(alertRow[0].monitor_name, 'Renombrado');
-assert.strictEqual((await report(false, 503, 40, 'El servidor respondió 503')).rows.length, 0); // sigue caído
-alertRow = (await report(true, 200, 90, null)).rows;                                      // vuelve
+assert.strictEqual(alertRow[0].monitor_name, 'Renombrado'); assert.strictEqual(alertRow[0].error, 'El dominio no resuelve');
+assert.strictEqual((await due()).length, 0);                                          // reservado: no sale dos veces
+// Sin confirmar el envío vuelve a salir a 1, 2, 4… min, y nunca más tarde de una hora
+assert.ok(Math.abs(await waitSeconds() - 60) < 5);
+await db.query('update public.alert_outbox set next_attempt_at = now()'); await due();
+assert.ok(Math.abs(await waitSeconds() - 120) < 5);
+await db.query('update public.alert_outbox set attempts = 5000, next_attempt_at = now()'); await due(); // sin desbordar 2^n
+assert.ok(Math.abs(await waitSeconds() - 3600) < 5);
+await report(false, 503, 40, 'El servidor respondió 503');                            // sigue caído: nada nuevo
+assert.strictEqual((await queued()).length, 1);
+await report(true, 200, 90, null);                                                     // vuelve: sustituye al pendiente
+assert.deepStrictEqual(await queued(), [{ alert: 'up', attempts: 0 }]);
+alertRow = await due();
 assert.strictEqual(alertRow[0].alert, 'up'); assert.ok(alertRow[0].down_minutes >= 1);
+await checker('select public.checker_alert_sent($1)', [alertRow[0].id]);
+assert.strictEqual((await queued()).length, 0);                                       // enviado: sale de la cola
 await report(true, 200, 1, 'x'.repeat(500)); // un error larguísimo se recorta a 200 caracteres, sin fallar
 
 // El dueño ve su estado e historial; otro usuario no ve nada
@@ -132,11 +153,13 @@ assert.strictEqual((await as(D, 'select * from public.monitor_checks')).rows.len
 await db.exec(`set role service_role; update public.profiles set plan = 'freelancer' where id = '${C}'; reset role;`);
 await as(C, `update public.monitors set interval_seconds = 60 where id = ${mc}`);
 await db.exec(`set role service_role; update public.profiles set plan = 'free' where id = '${C}'; reset role;`);
-assert.strictEqual((await report(false, 500, 30, 'El servidor respondió 500')).rows[0].alert, 'down');
+await report(false, 500, 30, 'El servidor respondió 500');
+assert.strictEqual((await due())[0].alert, 'down');
 
-// Borrar el monitor borra su historial; un informe tardío de un monitor borrado no falla
+// Borrar el monitor borra su historial y sus avisos pendientes; un informe tardío de un monitor borrado no falla
 await as(C, `delete from public.monitors where id = ${mc}`);
 assert.strictEqual((await db.query('select count(*)::int as n from public.monitor_checks')).rows[0].n, 0);
+assert.strictEqual((await queued()).length, 0);
 assert.strictEqual((await report(true, 200, 10, null)).rows.length, 0);
 
 // ---------- Fase 4: suscripciones con Paddle ----------
