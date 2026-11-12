@@ -368,7 +368,7 @@ let profile = null, plan = null, monitors = [], subscription = null, history = n
 async function loadDash() {
   const [p, m, h, s, i] = await Promise.all([
     sb.from('profiles').select('name, plan, plans(name, max_monitors, min_interval)').single(),
-    sb.from('monitors').select('id, name, url, client, interval_seconds, created_at, state, state_since, last_checked_at, last_status, last_ms, last_error, paused').order('created_at'),
+    sb.from('monitors').select('id, name, url, client, interval_seconds, created_at, state, state_since, last_checked_at, last_status, last_ms, last_error, paused, ssl_expires_at').order('created_at'),
     sb.rpc('my_history_24h'), // resumido en el servidor: la API devuelve como mucho 1000 filas por petición
     sb.from('subscriptions').select('plan, status, current_period_end, scheduled_cancel').maybeSingle(),
     sb.from('incidents').select('monitor_id, started_at, last_ok_at, status, error, last_fail_at, ended_at').order('started_at', { ascending: false }).limit(50)
@@ -413,6 +413,12 @@ function renderMonitors() {
     if (m.state === 'down' && m.last_error) { const er = document.createElement('small'); er.className = 't-down'; er.textContent = m.last_error; sp.append(b, sm, er); }
     else sp.append(b, sm);
     if (m.paused) { const pz = document.createElement('small'); pz.textContent = 'En pausa: supera el límite de tu plan'; sp.append(pz); }
+    if (new Date(m.ssl_expires_at) > Date.now()) { // ya caducado lo dice el motivo de la caída
+      const d = daysLeft(m.ssl_expires_at), sc = document.createElement('small');
+      if (d <= 14) sc.className = 't-down';
+      sc.textContent = d <= 14 ? `El certificado SSL caduca en ${daysText(d)}` : `SSL válido hasta ${new Date(m.ssl_expires_at).toLocaleDateString('es')}`;
+      sp.append(sc);
+    }
     svc.append(dot(m.paused || m.state === 'pending' ? 'new' : m.state), sp);
     const cl = document.createElement('td'); cl.textContent = m.client || '—';
     const hist = document.createElement('td');
@@ -452,6 +458,8 @@ function historyBars(day) {
 
 // ---------- Incidencias: la ficha que la agencia reenvía a su cliente ----------
 const when = d => new Date(d).toLocaleString('es', { dateStyle: 'short', timeStyle: 'short' });
+const daysLeft = d => Math.max(1, Math.round((new Date(d) - Date.now()) / 864e5));
+const daysText = n => `${n} día${n === 1 ? '' : 's'}`;
 const every = m => m.interval_seconds < 60 ? `${m.interval_seconds} s` : `${m.interval_seconds / 60} min`;
 /** Minutos entre detectar la caída y ver que volvió (o hasta ahora, si sigue caída). */
 const downFor = i => Math.max(1, Math.round((new Date(i.ended_at || Date.now()) - new Date(i.started_at)) / 6e4));
@@ -544,6 +552,8 @@ function renderDash() {
   $('[data-action="cancel-sub"]').hidden = !paid || subscription.scheduled_cancel;
   $('[data-stat-count]').textContent = monitors.length;
   $('[data-stat-down]').textContent = monitors.filter(m => m.state === 'down').length;
+  const ssl = monitors.map(m => new Date(m.ssl_expires_at)).filter(d => d > Date.now()).sort((a, b) => a - b);
+  $('[data-stat-ssl]').textContent = ssl.length ? daysText(daysLeft(ssl[0])) : '—';
   let total = 0, bad = 0;
   for (const d of history.values()) { total += d.checks; bad += d.failures; }
   $('[data-stat-uptime]').textContent = total ? (100 * (total - bad) / total).toFixed(2).replace('.', ',') + ' %' : '—';

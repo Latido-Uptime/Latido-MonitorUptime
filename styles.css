@@ -237,6 +237,7 @@ input[aria-invalid="true"] { border-color: var(--down); }
 .table td.svc { display: flex; align-items: center; gap: 10px; min-width: 180px; }
 .table td.svc span { display: flex; flex-direction: column; min-width: 0; }
 .table td.svc small { color: var(--muted); font-family: var(--mono); font-size: .75rem; overflow-wrap: anywhere; }
+.table td.svc small.t-down { color: var(--down); }
 .del { border: 0; background: transparent; color: var(--muted); cursor: pointer; font: inherit; font-size: .8rem; min-height: 32px; padding: 0 6px; }
 .del:hover { color: var(--down); }
 .code { background: var(--ink); color: #d6dbe4; padding: 12px; border-radius: var(--r); font-size: .75rem; white-space: pre-wrap; overflow-wrap: anywhere; margin: 10px 0 0; }

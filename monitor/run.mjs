@@ -2,6 +2,7 @@
 // (filtro anti-SSRF en check.mjs) y guarda el resultado. Si una web cae o vuelve, la base de datos
 // deja el aviso en una cola y otro bucle lo envía por email; si el envío falla, se reintenta.
 // Si una web falla y las webs de control tampoco responden, el fallo es de nuestra red y no se marca.
+// También guarda la caducidad del certificado SSL, y la base de datos avisa a los 14, 7 y 3 días.
 // Entra en la base de datos como latido_checker: solo puede llamar a checker_claim, checker_report,
 // checker_alerts_due y checker_alert_sent.
 //   node --env-file=.env monitor/run.mjs
@@ -40,7 +41,7 @@ export async function runBatch({ sql, checkFn = check, retryDelayMs = RETRY_DELA
         let r = await checkFn(m.url);
         if (!r.ok) { await sleep(retryDelayMs); r = await checkFn(m.url); }
         if (!r.ok && !(await networkOk())) { networkDown = true; continue; }
-        await sql`select * from public.checker_report(${m.id}, ${r.ok}, ${r.status}, ${r.ms}, ${r.error})`;
+        await sql`select public.checker_report(${m.id}, ${r.ok}, ${r.status}, ${r.ms}, ${r.error}, ${r.certExpires || null})`;
       } catch (e) {
         console.error(`monitor ${m.id}: ${e.message}`);
       }
@@ -67,6 +68,14 @@ export async function sendDue({ sql, send, allow = () => true }) {
 /** Texto del aviso (solo texto plano: nada que escapar). La hora es la del suceso, no la del envío. */
 export function alertEmail(a) {
   const name = oneLine(a.monitor_name), url = oneLine(a.monitor_url), at = fmt(new Date(a.event_at));
+  if (a.alert === 'ssl') {
+    const days = Math.max(1, Math.round((new Date(a.ssl_expires_at) - new Date(a.event_at)) / 864e5));
+    const left = `${days} día${days === 1 ? '' : 's'}`;
+    return {
+      subject: `⚠️ El certificado SSL de ${name} caduca en ${left}`,
+      text: `El certificado SSL de ${name} (${url}) caduca el ${fmt(new Date(a.ssl_expires_at))}, dentro de ${left}.\n\nSi no se renueva antes, los navegadores mostrarán un aviso de seguridad y los visitantes no podrán entrar. Si se renueva solo (por ejemplo, con Let's Encrypt), revisa por qué no lo ha hecho todavía.\n\n— Latido · https://latidouptime.com`
+    };
+  }
   if (a.alert === 'down') return {
     subject: `🔴 Caída: ${name}`,
     text: `${name} (${url}) no responde desde ${at}.\n\nMotivo: ${oneLine(a.error)}\n\nTe avisaremos cuando vuelva.\n\n— Latido · https://latidouptime.com`

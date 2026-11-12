@@ -182,12 +182,31 @@ await report(false, 500, 30, 'El servidor respondió 500');
 assert.strictEqual((await due())[0].alert, 'down');
 assert.deepStrictEqual((await as(C, 'select status, ended_at from public.incidents order by started_at')).rows.map(r => [r.status, r.ended_at === null]), [[null, false], [500, true]]); // otra caída, otra incidencia abierta
 
+// Certificado SSL: aviso a los 14, 7 y 3 días, una sola vez por tramo; uno renovado rearma los avisos
+const ssl = days => checker('select public.checker_report($1, true, 200, 50, null, now() + make_interval(days => $2))', [mc, days]);
+const sslQueued = async () => (await db.query(`select count(*)::int as n from public.alert_outbox where alert = 'ssl'`)).rows[0].n;
+const warned = async () => (await db.query('select ssl_warned_days as w from public.monitors where id = $1', [mc])).rows[0].w;
+await ssl(60); assert.strictEqual(await sslQueued(), 0); assert.strictEqual(await warned(), null);
+await ssl(10); assert.strictEqual(await warned(), 14);
+const sslAlert = (await due()).find(a => a.alert === 'ssl');
+assert.strictEqual(sslAlert.email, 'c@x.com'); assert.ok(sslAlert.ssl_expires_at > new Date(Date.now() + 9 * 864e5));
+await checker('select public.checker_alert_sent($1)', [sslAlert.id]);
+await ssl(9); assert.strictEqual(await sslQueued(), 0);                             // mismo tramo: no se repite
+await ssl(5); assert.strictEqual(await warned(), 7); assert.strictEqual(await sslQueued(), 1);
+await report(false, 503, 40, 'El servidor respondió 503'); await report(true, 200, 90, null);
+assert.strictEqual(await sslQueued(), 1);                                           // caer y volver no lo borra
+await checker('select public.checker_report($1, true, 200, 50, null)', [mc]);        // sin dato (http): se conserva
+assert.strictEqual(await warned(), 7);
+await ssl(90); assert.strictEqual(await warned(), null);                            // renovado: avisos rearmados
+assert.ok((await as(C, `select ssl_expires_at from public.monitors where id = ${mc}`)).rows[0].ssl_expires_at > new Date(Date.now() + 80 * 864e5));
+await db.query('delete from public.alert_outbox');
+
 // Borrar el monitor borra su historial y sus avisos pendientes; un informe tardío de un monitor borrado no falla
 await as(C, `delete from public.monitors where id = ${mc}`);
 assert.strictEqual((await db.query('select count(*)::int as n from public.monitor_checks')).rows[0].n, 0);
 assert.strictEqual((await queued()).length, 0);
 assert.strictEqual((await db.query('select count(*)::int as n from public.incidents')).rows[0].n, 0);
-assert.strictEqual((await report(true, 200, 10, null)).rows.length, 0);
+await report(true, 200, 10, null);
 
 // ---------- Fase 4: suscripciones con Paddle ----------
 const E = '66666666-6666-6666-6666-666666666666', F = '77777777-7777-7777-7777-777777777777';

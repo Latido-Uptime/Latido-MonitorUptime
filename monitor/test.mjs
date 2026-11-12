@@ -17,7 +17,7 @@ assert.match(rebinding.error, /interna/);
 // Comprobación real (se omite sin internet)
 const live = await check('https://example.com');
 if (live.error && /resuelve|conexión|ENETUNREACH|EAI_AGAIN/i.test(live.error)) console.log('(sin internet: se omite la prueba real)');
-else { assert.strictEqual(live.ok, true, JSON.stringify(live)); assert.ok(live.ms > 0); }
+else { assert.strictEqual(live.ok, true, JSON.stringify(live)); assert.ok(live.ms > 0); assert.ok(live.certExpires > new Date()); }
 
 // ---------- Textos de aviso: sin saltos de línea inyectados en el asunto, con la hora del suceso ----------
 const at = new Date('2026-11-08T14:00:00Z');
@@ -25,6 +25,8 @@ const down = alertEmail({ alert: 'down', monitor_name: 'Tienda\r\nBcc: x@y.com',
 assert.ok(!/[\r\n]/.test(down.subject)); assert.match(down.text, /503/);
 assert.ok(down.text.includes(at.toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'short', timeZone: process.env.TIME_ZONE || 'America/Guayaquil' })));
 assert.match(alertEmail({ alert: 'up', monitor_name: 'T', monitor_url: 'https://t.com', down_minutes: 7, status: 200, ms: 90, event_at: at }).text, /7 min/);
+const sslMail = alertEmail({ alert: 'ssl', monitor_name: 'T', monitor_url: 'https://t.com', event_at: at, ssl_expires_at: new Date(at.getTime() + 864e5) });
+assert.match(sslMail.subject, /SSL de T caduca en 1 día$/); assert.match(sslMail.text, /dentro de 1 día\./);
 
 // ---------- Tope de avisos por cuenta y hora ----------
 const allow = alertLimiter(2, 1000);
@@ -71,6 +73,14 @@ await sql`reset role`; await sql`update public.monitors set last_checked_at = nu
 assert.deepStrictEqual(await runBatch({ sql, checkFn: allDown, retryDelayMs: 0 }), { checked: 2, networkDown: true });
 assert.strictEqual(asked.filter(u => !u.endsWith('.example')).length, 2); // las dos webs de control, una sola vez
 assert.deepStrictEqual(await sendDue({ sql, send: ok }), { sent: 0, failed: 0 }); // ningún aviso en falso
+
+// El certificado de "Web OK" caduca en 5 días: el comprobador lo guarda y llega el aviso
+await sql`reset role`; await sql`update public.monitors set last_checked_at = null`; await sql`set role latido_checker`;
+const soon = new Date(Date.now() + 5 * 864e5);
+await runBatch({ sql, checkFn: async url => ({ ...(await fakeCheck(url)), certExpires: url.includes('//ok.') ? soon : null }), retryDelayMs: 0 });
+sent.length = 0;
+assert.deepStrictEqual(await sendDue({ sql, send: ok }), { sent: 1, failed: 0 });
+assert.match(sent[0].subject, /SSL de Web OK caduca en 5 días/);
 await assert.rejects(sql`select * from public.monitors`, /permission denied/); // el comprobador no lee tablas
 await assert.rejects(sql`select * from public.alert_outbox`, /permission denied/);
 

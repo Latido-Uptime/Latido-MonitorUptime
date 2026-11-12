@@ -22,8 +22,10 @@ function request(target) {
         ? cb(null, [{ address: target.address, family }])
         : cb(null, target.address, family)
     }, res => {
-      resolve({ status: res.statusCode, location: res.headers.location });
-      res.destroy(); // solo nos importan el código y el tiempo
+      const cert = res.socket.getPeerCertificate?.(); // solo en https; vacío si el servidor no lo envía
+      const expires = new Date(cert?.valid_to);
+      resolve({ status: res.statusCode, location: res.headers.location, certExpires: isNaN(expires) ? null : expires });
+      res.destroy(); // solo nos importan el código, el tiempo y la caducidad del certificado
     });
     req.setTimeout(TIMEOUT_MS, () => req.destroy(new Error(`Sin respuesta en ${TIMEOUT_MS / 1000} s`)));
     req.on('error', err => resolve({ error: humanError(err) }));
@@ -44,22 +46,24 @@ function humanError(err) {
   return map[err.code] || err.message || 'Error de conexión';
 }
 
-/** Devuelve { ok, status, ms, error }. `lookup` se puede inyectar en los tests. */
+/** Devuelve { ok, status, ms, error, certExpires }. `lookup` se puede inyectar en los tests.
+ *  certExpires: la caducidad más próxima entre los certificados https de todos los saltos (o null). */
 export async function check(rawUrl, { lookup = dns.lookup } = {}) {
   const start = performance.now();
-  let url = rawUrl;
+  let url = rawUrl, certExpires = null;
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
     const target = await resolveAndCheck(url, lookup);
-    if (!target.ok) return { ok: false, status: null, ms: null, error: target.error };
+    if (!target.ok) return { ok: false, status: null, ms: null, error: target.error, certExpires };
     const res = await request(target);
     const ms = Math.round(performance.now() - start);
-    if (res.error) return { ok: false, status: null, ms, error: res.error };
+    if (res.error) return { ok: false, status: null, ms, error: res.error, certExpires };
+    if (res.certExpires && (!certExpires || res.certExpires < certExpires)) certExpires = res.certExpires;
     if (REDIRECTS.has(res.status) && res.location) {
-      try { url = new URL(res.location, target.url).href; } catch { return { ok: false, status: res.status, ms, error: 'Redirección inválida' }; }
+      try { url = new URL(res.location, target.url).href; } catch { return { ok: false, status: res.status, ms, error: 'Redirección inválida', certExpires }; }
       continue; // el siguiente salto vuelve a pasar por el filtro anti-SSRF
     }
     const ok = res.status >= 200 && res.status < 400;
-    return { ok, status: res.status, ms, error: ok ? null : `El servidor respondió ${res.status}` };
+    return { ok, status: res.status, ms, error: ok ? null : `El servidor respondió ${res.status}`, certExpires };
   }
-  return { ok: false, status: null, ms: Math.round(performance.now() - start), error: `Más de ${MAX_REDIRECTS} redirecciones` };
+  return { ok: false, status: null, ms: Math.round(performance.now() - start), error: `Más de ${MAX_REDIRECTS} redirecciones`, certExpires };
 }
