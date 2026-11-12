@@ -48,19 +48,21 @@ await sql`set role latido_checker`; // a partir de aquí, solo los permisos del 
 const fakeCheck = async url => url.includes('rota') ? { ok: false, status: 503, ms: 40, error: 'El servidor respondió 503' } : { ok: true, status: 200, ms: 120, error: null };
 assert.deepStrictEqual(await runBatch({ sql, checkFn: fakeCheck, retryDelayMs: 0 }), { checked: 2, networkDown: false });
 
-// El aviso de "Web rota" espera en la cola: si Resend falla o se llega al tope, no se pierde
+// Esperan en la cola el aviso de "Web rota" y el email de prueba de "Web OK" (la primera web de la
+// cuenta que responde bien). Si Resend falla o se llega al tope, no se pierden
 const sent = [];
 const ok = async a => { sent.push({ ...a, ...alertEmail(a) }); };
 const failing = async () => { throw new Error('Resend respondió 429'); };
 const later = async () => { await sql`reset role`; await sql`update public.alert_outbox set next_attempt_at = now()`; await sql`set role latido_checker`; };
-assert.deepStrictEqual(await sendDue({ sql, send: failing }), { sent: 0, failed: 1 });
-assert.deepStrictEqual(await sendDue({ sql, send: ok }), { sent: 0, failed: 0 }); // espera su reintento
+assert.deepStrictEqual(await sendDue({ sql, send: failing }), { sent: 0, failed: 2 });
+assert.deepStrictEqual(await sendDue({ sql, send: ok }), { sent: 0, failed: 0 }); // esperan su reintento
 await later();
-assert.deepStrictEqual(await sendDue({ sql, send: ok, allow: () => false }), { sent: 0, failed: 0 }); // el tope lo aplaza
+assert.deepStrictEqual(await sendDue({ sql, send: ok, allow: () => false }), { sent: 0, failed: 0 }); // el tope los aplaza
 await later();
-assert.deepStrictEqual(await sendDue({ sql, send: ok }), { sent: 1, failed: 0 });
-assert.strictEqual(sent[0].alert, 'down'); assert.strictEqual(sent[0].email, 'dueno@x.com');
-assert.match(sent[0].subject, /Web rota/); assert.match(sent[0].text, /503/);
+assert.deepStrictEqual(await sendDue({ sql, send: ok }), { sent: 2, failed: 0 });
+const downMail = sent.find(s => s.alert === 'down'), hello = sent.find(s => s.alert === 'welcome');
+assert.strictEqual(downMail.email, 'dueno@x.com'); assert.match(downMail.subject, /Web rota/); assert.match(downMail.text, /503/);
+assert.strictEqual(hello.subject, '✅ Latido ya vigila Web OK'); assert.match(hello.text, /\(200 en 120 ms\)/);
 await later();
 assert.deepStrictEqual(await sendDue({ sql, send: ok }), { sent: 0, failed: 0 }); // enviado: ya no está en la cola
 

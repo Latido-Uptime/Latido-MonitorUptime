@@ -367,7 +367,7 @@ let profile = null, plan = null, monitors = [], subscription = null, history = n
 
 async function loadDash() {
   const [p, m, h, s, i] = await Promise.all([
-    sb.from('profiles').select('name, plan, plans(name, max_monitors, min_interval)').single(),
+    sb.from('profiles').select('name, plan, first_alert_sent_at, plans(name, max_monitors, min_interval)').single(),
     sb.from('monitors').select('id, name, url, client, interval_seconds, created_at, state, state_since, last_checked_at, last_status, last_ms, last_error, paused, ssl_expires_at').order('created_at'),
     sb.rpc('my_history_24h'), // resumido en el servidor: la API devuelve como mucho 1000 filas por petición
     sb.from('subscriptions').select('plan, status, current_period_end, scheduled_cancel').maybeSingle(),
@@ -584,7 +584,8 @@ $('[data-add-monitor]').addEventListener('submit', async e => {
   setTimeout(() => { if (location.hash === '#/app') loadDash(); }, 45000); // muestra la primera comprobación
   f.reset();
   renderDash();
-  formMsg(f, 'Monitor guardado. La primera comprobación llega en menos de un minuto.', true);
+  formMsg(f, 'Monitor guardado. La primera comprobación llega en menos de un minuto.' + (profile.first_alert_sent_at ? ''
+    : ` La primera vez que una de tus webs responda bien te enviaremos un email de prueba a ${session.user.email}: si no lo ves, mira en spam.`), true);
 });
 
 

@@ -121,8 +121,11 @@ const report = (ok, status, ms, err) => checker('select * from public.checker_re
 const due = async () => (await checker('select * from public.checker_alerts_due(10)')).rows;
 const queued = async () => (await db.query('select alert, attempts from public.alert_outbox')).rows;
 const waitSeconds = async () => Number((await db.query('select extract(epoch from next_attempt_at - now()) as s from public.alert_outbox')).rows[0].s);
-await report(true, 200, 120, null);
-assert.strictEqual((await due()).length, 0);                                          // primera OK: sin aviso
+await report(true, 200, 120, null);                                                   // primera OK: email de prueba
+const [hello] = await due();
+assert.strictEqual(hello.alert, 'welcome'); assert.strictEqual(hello.email, 'c@x.com'); assert.strictEqual(hello.status, 200);
+await checker('select public.checker_alert_sent($1)', [hello.id]);
+assert.ok((await as(C, 'select first_alert_sent_at from public.profiles')).rows[0].first_alert_sent_at);
 await report(false, null, null, 'El dominio no resuelve');                             // cae
 let alertRow = await due();
 assert.strictEqual(alertRow[0].alert, 'down'); assert.strictEqual(alertRow[0].email, 'c@x.com');
@@ -207,6 +210,14 @@ assert.strictEqual((await db.query('select count(*)::int as n from public.monito
 assert.strictEqual((await queued()).length, 0);
 assert.strictEqual((await db.query('select count(*)::int as n from public.incidents')).rows[0].n, 0);
 await report(true, 200, 10, null);
+
+// El email de prueba sale una sola vez por cuenta, aunque se añadan más webs
+const G = '88888888-8888-8888-8888-888888888888';
+await db.query(`insert into auth.users (id, email) values ($1, 'g@x.com')`, [G]);
+const g1 = (await add(G, 'https://g-uno.com')).rows[0].id, g2 = (await add(G, 'https://g-dos.com')).rows[0].id;
+await checker('select public.checker_report($1, true, 200, 30, null)', [g1]);
+await checker('select public.checker_report($1, true, 200, 30, null)', [g2]);
+assert.deepStrictEqual((await db.query('select o.alert from public.alert_outbox o join public.monitors m on m.id = o.monitor_id where m.user_id = $1', [G])).rows, [{ alert: 'welcome' }]);
 
 // ---------- Fase 4: suscripciones con Paddle ----------
 const E = '66666666-6666-6666-6666-666666666666', F = '77777777-7777-7777-7777-777777777777';

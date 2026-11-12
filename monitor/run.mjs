@@ -76,6 +76,10 @@ export function alertEmail(a) {
       text: `El certificado SSL de ${name} (${url}) caduca el ${fmt(new Date(a.ssl_expires_at))}, dentro de ${left}.\n\nSi no se renueva antes, los navegadores mostrarán un aviso de seguridad y los visitantes no podrán entrar. Si se renueva solo (por ejemplo, con Let's Encrypt), revisa por qué no lo ha hecho todavía.\n\n— Latido · https://latidouptime.com`
     };
   }
+  if (a.alert === 'welcome') return {
+    subject: `✅ Latido ya vigila ${name}`,
+    text: `${name} (${url}) respondió bien en su primera comprobación (${a.status} en ${a.ms} ms).\n\nAsí te llegarán los avisos: te escribiremos a este email si deja de responder, cuando vuelva y antes de que caduque su certificado SSL. Si este correo llegó a spam, márcalo como «No es spam» para no perderte ninguno.\n\n— Latido · https://latidouptime.com`
+  };
   if (a.alert === 'down') return {
     subject: `🔴 Caída: ${name}`,
     text: `${name} (${url}) no responde desde ${at}.\n\nMotivo: ${oneLine(a.error)}\n\nTe avisaremos cuando vuelva.\n\n— Latido · https://latidouptime.com`
