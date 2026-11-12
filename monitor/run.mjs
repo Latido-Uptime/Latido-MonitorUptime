@@ -1,11 +1,12 @@
 // Comprobador de Latido. Cada 30 s reserva los monitores a los que les toca, los comprueba
 // (filtro anti-SSRF en check.mjs) y guarda el resultado. Si una web cae o vuelve, la base de datos
 // deja el aviso en una cola y otro bucle lo envía por email; si el envío falla, se reintenta.
+// Si una web falla y las webs de control tampoco responden, el fallo es de nuestra red y no se marca.
 // Entra en la base de datos como latido_checker: solo puede llamar a checker_claim, checker_report,
 // checker_alerts_due y checker_alert_sent.
 //   node --env-file=.env monitor/run.mjs
 // HEARTBEAT_URL (opcional): URL de ping de Healthchecks.io. Se llama tras cada ronda, con /fail si la
-// ronda falló o los avisos no salen; si deja de llegar, Healthchecks te avisa a ti.
+// ronda falló, nuestra red no responde o los avisos no salen; si deja de llegar, Healthchecks te avisa a ti.
 import postgres from 'postgres';
 import { fileURLToPath } from 'node:url';
 import { check } from './check.mjs';
@@ -18,21 +19,27 @@ const CONCURRENCY = 10;    // comprobaciones a la vez
 const RETRY_DELAY_MS = 5_000; // una caída se confirma con una segunda comprobación
 const ALERTS_PER_HOUR = 20;   // tope de emails por cuenta y hora
 const TIME_ZONE = process.env.TIME_ZONE || 'America/Guayaquil';
+// Webs de control de Google y Cloudflare, hechas para comprobar conexiones: si fallan las dos, el fallo es nuestro
+const CANARIES = ['https://www.gstatic.com/generate_204', 'https://cp.cloudflare.com/generate_204'];
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const fmt = d => d.toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'short', timeZone: TIME_ZONE });
 const oneLine = s => String(s ?? '').replace(/[\r\n\t]+/g, ' ').slice(0, 120);
 
-/** Una ronda: reserva, comprueba y guarda (los avisos quedan en la cola). Devuelve cuántos monitores comprobó. */
+/** Una ronda: reserva, comprueba y guarda (los avisos quedan en la cola). Un fallo solo se guarda si
+ *  alguna web de control responde: si no, la caída es de nuestra red y se avisaría a todos en falso. */
 export async function runBatch({ sql, checkFn = check, retryDelayMs = RETRY_DELAY_MS }) {
   const due = await sql`select id, url from public.checker_claim(${BATCH})`;
-  let next = 0;
+  let next = 0, canaries, networkDown = false;
+  // Las webs de control se consultan como mucho una vez por ronda, y solo si algo falla
+  const networkOk = () => (canaries ??= Promise.allSettled(CANARIES.map(u => checkFn(u))).then(rs => rs.some(x => x.value?.ok)));
   async function lane() {
     while (next < due.length) {
       const m = due[next++];
       try {
         let r = await checkFn(m.url);
         if (!r.ok) { await sleep(retryDelayMs); r = await checkFn(m.url); }
+        if (!r.ok && !(await networkOk())) { networkDown = true; continue; }
         await sql`select * from public.checker_report(${m.id}, ${r.ok}, ${r.status}, ${r.ms}, ${r.error})`;
       } catch (e) {
         console.error(`monitor ${m.id}: ${e.message}`);
@@ -40,7 +47,7 @@ export async function runBatch({ sql, checkFn = check, retryDelayMs = RETRY_DELA
     }
   }
   await Promise.all(Array.from({ length: Math.min(CONCURRENCY, due.length) }, lane));
-  return due.length;
+  return { checked: due.length, networkDown };
 }
 
 /** Envía los avisos de la cola. Uno que falla, o que supera el tope por cuenta, se queda en ella
@@ -96,9 +103,10 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     const t0 = Date.now();
     let ok = false;
     try {
-      const n = await runBatch({ sql });
-      if (n) console.log(`${fmt(new Date())}  ${n} monitores comprobados en ${Date.now() - t0} ms`);
-      ok = true;
+      const { checked, networkDown } = await runBatch({ sql });
+      if (checked) console.log(`${fmt(new Date())}  ${checked} monitores comprobados en ${Date.now() - t0} ms`);
+      if (networkDown) console.warn('Las webs de control tampoco responden: el fallo parece de la red de Latido; esta ronda no marca caídas.');
+      ok = !networkDown;
     } catch (e) { console.error('ronda fallida:', e.message); }
     if (HEARTBEAT_URL) fetch(ok && emailsOk ? HEARTBEAT_URL : HEARTBEAT_URL.replace(/\/?$/, '/fail'), { signal: AbortSignal.timeout(10_000) })
       .catch(e => console.warn('señal de vida fallida:', e.message));

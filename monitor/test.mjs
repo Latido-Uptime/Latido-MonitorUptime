@@ -44,7 +44,7 @@ const sql = postgres({ host: '127.0.0.1', port, database: 'postgres', username: 
 await sql`set role latido_checker`; // a partir de aquí, solo los permisos del comprobador
 
 const fakeCheck = async url => url.includes('rota') ? { ok: false, status: 503, ms: 40, error: 'El servidor respondió 503' } : { ok: true, status: 200, ms: 120, error: null };
-assert.strictEqual(await runBatch({ sql, checkFn: fakeCheck, retryDelayMs: 0 }), 2);
+assert.deepStrictEqual(await runBatch({ sql, checkFn: fakeCheck, retryDelayMs: 0 }), { checked: 2, networkDown: false });
 
 // El aviso de "Web rota" espera en la cola: si Resend falla o se llega al tope, no se pierde
 const sent = [];
@@ -62,7 +62,15 @@ assert.match(sent[0].subject, /Web rota/); assert.match(sent[0].text, /503/);
 await later();
 assert.deepStrictEqual(await sendDue({ sql, send: ok }), { sent: 0, failed: 0 }); // enviado: ya no está en la cola
 
-assert.strictEqual(await runBatch({ sql, checkFn: fakeCheck, retryDelayMs: 0 }), 0); // aún no les toca
+assert.deepStrictEqual(await runBatch({ sql, checkFn: fakeCheck, retryDelayMs: 0 }), { checked: 0, networkDown: false }); // aún no les toca
+
+// Si tampoco responden las webs de control, el fallo es de nuestra red: no se marca ninguna caída
+const asked = [];
+const allDown = async url => { asked.push(url); return { ok: false, status: null, ms: null, error: 'Sin respuesta en 10 s' }; };
+await sql`reset role`; await sql`update public.monitors set last_checked_at = null`; await sql`set role latido_checker`;
+assert.deepStrictEqual(await runBatch({ sql, checkFn: allDown, retryDelayMs: 0 }), { checked: 2, networkDown: true });
+assert.strictEqual(asked.filter(u => !u.endsWith('.example')).length, 2); // las dos webs de control, una sola vez
+assert.deepStrictEqual(await sendDue({ sql, send: ok }), { sent: 0, failed: 0 }); // ningún aviso en falso
 await assert.rejects(sql`select * from public.monitors`, /permission denied/); // el comprobador no lee tablas
 await assert.rejects(sql`select * from public.alert_outbox`, /permission denied/);
 
